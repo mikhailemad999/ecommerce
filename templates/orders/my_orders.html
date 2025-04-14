@@ -1,0 +1,60 @@
+<!-- templates/orders/my_orders.html -->
+{% extends 'base.html' %}
+
+{% block title %}My Orders{% endblock %}
+
+{% block content %}
+<div class="my-orders-container">
+    <h1>My Orders</h1>
+    
+    {% if orders %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>DATE</th>
+                        <th>TOTAL</th>
+                        <th>PAID</th>
+                        <th>DELIVERED</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                        <tr>
+                            <td>{{ order.id }}</td>
+                            <td>{{ order.createdAt|date:"M d, Y" }}</td>
+                            <td>${{ order.totalPrice }}</td>
+                            <td>
+                                {% if order.isPaid %}
+                                    <i class="fas fa-check text-success"></i> {{ order.paidAt|date:"M d, Y" }}
+                                {% else %}
+                                    <i class="fas fa-times text-danger"></i>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if order.isDelivered %}
+                                    <i class="fas fa-check text-success"></i> {{ order.deliveredAt|date:"M d, Y" }}
+                                {% else %}
+                                    <i class="fas fa-times text-danger"></i>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'user-order' order.id %}" class="btn btn-sm btn-primary">
+                                    Details
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <p>You have no orders</p>
+            <a href="{% url 'products' %}" class="btn btn-primary mt-3">Go Shopping</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

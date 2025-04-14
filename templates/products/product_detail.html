@@ -1,0 +1,306 @@
+<!-- templates/products/product_detail.html -->
+{% extends 'base.html' %}
+
+{% block title %}{{ product.name }}{% endblock %}
+
+{% block content %}
+<div class="product-detail-container">
+    <div class="back-button mb-4">
+        <a href="{% url 'products' %}" class="btn btn-light">
+            <i class="fas fa-arrow-left"></i> Back to Products
+        </a>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <img src="{{ product.image }}" alt="{{ product.name }}" class="img-fluid product-image" style="max-height: 400px; object-fit: contain;">
+        </div>
+        
+        <div class="col-md-6">
+            <div class="product-info">
+                <h1>{{ product.name }}</h1>
+                
+                <div class="rating mb-3">
+                    {% for i in "12345" %}
+                        {% if forloop.counter <= product.rating %}
+                            <i class="fas fa-star text-warning"></i>
+                        {% elif forloop.counter <= product.rating|add:0.5 %}
+                            <i class="fas fa-star-half-alt text-warning"></i>
+                        {% else %}
+                            <i class="far fa-star text-warning"></i>
+                        {% endif %}
+                    {% endfor %}
+                    <span class="ms-2">{{ product.numReviews }} reviews</span>
+                </div>
+                
+                <div class="price mb-3">
+                    <h3>${{ product.price }}</h3>
+                </div>
+                
+                <div class="description mb-4">
+                    <p>{{ product.description }}</p>
+                </div>
+                
+                <div class="product-details mb-4">
+                    <div class="row mb-2">
+                        <div class="col-md-3">
+                            <strong>Brand:</strong>
+                        </div>
+                        <div class="col-md-9">
+                            {{ product.brand }}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-2">
+                        <div class="col-md-3">
+                            <strong>Category:</strong>
+                        </div>
+                        <div class="col-md-9">
+                            {{ product.category }}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-2">
+                        <div class="col-md-3">
+                            <strong>Status:</strong>
+                        </div>
+                        <div class="col-md-9">
+                            {% if product.countInStock > 0 %}
+                                <span class="text-success">In Stock</span>
+                            {% else %}
+                                <span class="text-danger">Out of Stock</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                {% if product.countInStock > 0 %}
+                    <div class="add-to-cart mb-4">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="qty">Quantity</label>
+                                <select id="qty" class="form-select">
+                                    {% for i in "123456789" %}
+                                        {% if forloop.counter <= product.countInStock %}
+                                            <option value="{{ forloop.counter }}">{{ forloop.counter }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-8">
+                                <button id="add-to-cart" class="btn btn-primary w-100">
+                                    <i class="fas fa-shopping-cart"></i> Add to Cart
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-5">
+        <div class="col-md-8">
+           
+            
+            {% if product.reviews %}
+                <div class="reviews-list">
+                    {% for review in product.reviews %}
+                        <div class="review-card mb-3">
+                            <div class="review-header">
+                                <strong>{{ review.name }}</strong>
+                                <div class="rating">
+                                    {% for i in "12345" %}
+                                        {% if forloop.counter <= review.rating %}
+                                            <i class="fas fa-star text-warning"></i>
+                                        {% else %}
+                                            <i class="far fa-star text-warning"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                <small>{{ review.createdAt|date:"F d, Y" }}</small>
+                            </div>
+                            <div class="review-body">
+                                <p>{{ review.comment }}</p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                
+            {% endif %}
+            
+            <div class="write-review mt-4">
+                <h1>Write a Review</h1>
+                
+                {% if user.is_authenticated %}
+                    <div class="active-review-form">
+                        <form id="review-form" method="POST" action="{% url 'create-review' product.id %}">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Your Rating:</label>
+                                <div class="rating-stars mb-3">
+                                    {% for i in "12345" %}
+                                        <i class="far fa-star rating-star" data-value="{{ forloop.counter }}"></i>
+                                    {% endfor %}
+                                    <input type="hidden" id="rating" name="rating" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="comment" class="form-label fw-bold">Your Review:</label>
+                                <textarea id="comment" name="comment" class="form-control" rows="4" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-success w-100 py-2">
+                                <i class="fas fa-paper-plane me-2"></i>Submit Review
+                            </button>
+                        </form>
+                    </div>
+                {% else %}
+                    <div class="review-placeholder">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Your Rating:</label>
+                            <div class="rating-stars mb-3 text-muted">
+                                {% for i in "12345" %}
+                                    <i class="far fa-star"></i>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Your Review:</label>
+                            <textarea class="form-control" rows="4" disabled placeholder="Please sign in to write a review"></textarea>
+                        </div>
+                        <div class="alert alert-info mt-3">
+                            Please <a href="{% url 'login' %}?redirect=/products/{{ product.id }}/" class="alert-link">sign in</a> to submit your review
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add to cart functionality
+            const addToCartButton = document.getElementById('add-to-cart');
+            if (addToCartButton) {
+                addToCartButton.addEventListener('click', function() {
+                    const qty = parseInt(document.getElementById('qty').value);
+                    addToCart(qty);
+                });
+            }
+            
+            // Review form submission
+            const reviewForm = document.getElementById('review-form');
+            if (reviewForm) {
+                reviewForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    submitReview();
+                });
+            }
+
+            // Rating stars selection
+            const stars = document.querySelectorAll('.rating-star');
+            const ratingInput = document.getElementById('rating');
+            stars.forEach(star => {
+                star.addEventListener('click', function() {
+                    const value = this.getAttribute('data-value');
+                    ratingInput.value = value;
+                    updateStars(value);
+                });
+            });
+
+            function updateStars(value) {
+                stars.forEach(star => {
+                    if (star.getAttribute('data-value') <= value) {
+                        star.classList.remove('far');
+                        star.classList.add('fas');
+                    } else {
+                        star.classList.remove('fas');
+                        star.classList.add('far');
+                    }
+                });
+            }
+        });
+        
+        function addToCart(qty) {
+            const product = {
+                product: '{{ product.id }}',
+                name: '{{ product.name }}',
+                image: '{{ product.image }}',
+                price: {{ product.price }},
+                countInStock: {{ product.countInStock }},
+                qty: qty
+            };
+            
+            let cartItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
+            
+            const existItem = cartItems.find(x => x.product === product.product);
+            
+            if (existItem) {
+                cartItems = cartItems.map(x => 
+                    x.product === existItem.product ? product : x
+                );
+            } else {
+                cartItems = [...cartItems, product];
+            }
+            
+            localStorage.setItem('cartItems', JSON.stringify(cartItems));
+            
+            alert('Product added to cart!');
+        }
+        
+        function submitReview() {
+            const rating = document.getElementById('rating').value;
+            const comment = document.getElementById('comment').value;
+            
+            if (!rating) {
+                alert('Please select a rating');
+                return;
+            }
+            
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        // Does this cookie string begin with the name we want?
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+    
+            const csrftoken = getCookie('csrftoken');
+    
+            fetch(`/api/products/{{ product.id }}/reviews/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                credentials: 'include',
+                body: JSON.stringify({ rating, comment })
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('Review submitted successfully');
+                    window.location.reload();
+                } else {
+                    return response.json().then(data => {
+                        throw new Error(data.detail || 'Something went wrong');
+                    });
+                }
+            })
+            .catch(error => {
+                alert(error.message);
+            });
+        }
+    </script>
+{% endblock %}

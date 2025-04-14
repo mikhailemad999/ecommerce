@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin - Users{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <h1>Users</h1>
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+    
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>NAME</th>
+                <th>EMAIL</th>
+                <th>ADMIN</th>
+                <th>ACTIONS</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.id }}</td>
+                <td>{{ user.name }}</td>
+                <td>{{ user.email }}</td>
+                <td>
+                    {% if user.isAdmin %}
+                        <i class="fas fa-check" style="color: green;"></i>
+                    {% else %}
+                        <i class="fas fa-times" style="color: red;"></i>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'user' user.id %}" class="btn btn-sm">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    <button class="btn btn-sm btn-danger delete-btn" data-id="{{ user.id }}" data-name="{{ user.name }}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <h3>Confirm Delete</h3>
+            <p>Are you sure you want to delete user <span id="userName"></span>?</p>
+            <div class="modal-actions">
+                <button id="cancelDelete" class="btn">Cancel</button>
+                <form id="deleteForm" method="POST">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('deleteModal');
+        const deleteForm = document.getElementById('deleteForm');
+        const userName = document.getElementById('userName');
+        const cancelDelete = document.getElementById('cancelDelete');
+        
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const userId = this.dataset.id;
+                const name = this.dataset.name;
+                
+                userName.textContent = name;
+                deleteForm.action = `/api/users/delete/${userId}/`;
+                modal.style.display = 'flex';
+            });
+        });
+        
+        cancelDelete.addEventListener('click', function() {
+            modal.style.display = 'none';
+        });
+        
+        window.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    });
+</script>
+{% endblock %}

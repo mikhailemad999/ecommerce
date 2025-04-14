@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<style>
+    .auth-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 80vh;
+        background-color: #f8f9fa;
+        padding: 20px;
+    }
+    .auth-card {
+        background: #fff;
+        padding: 40px 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        width: 100%;
+        max-width: 400px;
+        box-sizing: border-box;
+    }
+    .auth-card h1 {
+        margin-bottom: 30px;
+        font-weight: 700;
+        font-size: 2rem;
+        text-align: center;
+        color: #343a40;
+    }
+    .form-group label {
+        font-weight: 600;
+        color: #495057;
+    }
+    .form-group input {
+        height: 45px;
+        font-size: 1rem;
+        padding: 0 12px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        transition: border-color 0.3s ease;
+    }
+    .form-group input:focus {
+        border-color: #0d6efd;
+        outline: none;
+        box-shadow: 0 0 5px rgba(13, 110, 253, 0.5);
+    }
+    button.btn-primary {
+        background-color: #0d6efd;
+        border: none;
+        font-size: 1.1rem;
+        font-weight: 600;
+        padding: 12px 0;
+        border-radius: 6px;
+        transition: background-color 0.3s ease;
+    }
+    button.btn-primary:hover {
+        background-color: #0b5ed7;
+    }
+    .auth-redirect {
+        margin-top: 20px;
+        text-align: center;
+        font-size: 0.95rem;
+        color: #6c757d;
+    }
+    .auth-redirect a {
+        color: #0d6efd;
+        text-decoration: none;
+        font-weight: 600;
+    }
+    .auth-redirect a:hover {
+        text-decoration: underline;
+    }
+    small#password-empty-msg {
+        font-size: 0.85rem;
+        margin-top: 4px;
+        display: block;
+    }
+</style>
+<div class="auth-container">
+    <div class="auth-card">
+        <h1>Sign In</h1>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        
+        <form method="POST" action="{% url 'login' %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="username" required autofocus placeholder="Enter your email">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required placeholder="Enter your password" oninput="checkPasswordEmpty(this)">
+                <small id="password-empty-msg" style="color: red; display: none;">Password cannot be empty</small>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg w-100">Sign In</button>
+        </form>
+        <script>
+            function checkPasswordEmpty(input) {
+                const msg = document.getElementById('password-empty-msg');
+                if (input.value.trim() === '') {
+                    msg.style.display = 'inline';
+                } else {
+                    msg.style.display = 'none';
+                }
+            }
+        </script>
+        
+        <div class="auth-redirect">
+            New Customer? <a href="{% url 'register' %}{% if request.GET.redirect %}?redirect={{ request.GET.redirect }}{% endif %}">Register</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

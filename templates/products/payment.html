@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}Payment Method{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>Payment Method</h1>
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    Select Payment Method
+                </div>
+                <div class="card-body">
+                    <form id="payment-form">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="radio" name="paymentMethod" id="paypal" value="PayPal" checked>
+                            <label class="form-check-label" for="paypal">
+                                PayPal or Credit Card
+                            </label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="radio" name="paymentMethod" id="stripe" value="Stripe">
+                            <label class="form-check-label" for="stripe">
+                                Stripe
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Continue to Place Order</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    Order Summary
+                </div>
+                <div class="card-body">
+                    <div id="order-summary">
+                        <p>Total Items: <span id="total-items">0</span></p>
+                        <p>Subtotal: <span id="subtotal">$0.00</span></p>
+                        <p>Tax: <span id="tax">$0.00</span></p>
+                        <p>Shipping: <span id="shipping">$0.00</span></p>
+                        <h5>Total: <span id="total">$0.00</span></h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('payment-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // Save payment method to localStorage
+            const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+            localStorage.setItem('paymentMethod', paymentMethod);
+            
+            // Redirect to place order page
+            window.location.href = "{% url 'place_order' %}";
+        });
+        
+        // Load order summary from localStorage (to be implemented)
+        loadOrderSummary();
+    });
+    
+    function loadOrderSummary() {
+        // This function would load order summary from localStorage
+        // For now, it's just a placeholder
+        console.log('Loading order summary...');
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,294 @@
+<!-- templates/products/cart.html -->
+{% extends 'base.html' %}
+
+{% block title %}Shopping Cart{% endblock %}
+
+{% block content %}
+<style>
+    .cart-container {
+        max-width: 1100px;
+        margin: 40px auto;
+        padding: 0 20px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #212529;
+    }
+    h1 {
+        font-weight: 700;
+        font-size: 2.5rem;
+        margin-bottom: 30px;
+        text-align: center;
+        color: #0d6efd;
+    }
+    .card {
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transition: box-shadow 0.3s ease;
+        margin-bottom: 20px;
+    }
+    .card:hover {
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    .card-body {
+        padding: 15px 20px;
+    }
+    .card-title {
+        font-weight: 700;
+        font-size: 1.3rem;
+        margin-bottom: 10px;
+        color: #212529;
+    }
+    .qty-select {
+        width: 70px !important;
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+        padding: 5px;
+        font-size: 1rem;
+    }
+    .remove-item {
+        background-color: #dc3545;
+        border: none;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+    .remove-item:hover {
+        background-color: #bb2d3b;
+    }
+    .order-summary-card {
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        padding: 20px;
+        background: #fff;
+    }
+    .order-summary-card h4 {
+        font-weight: 700;
+        margin-bottom: 20px;
+        color: #0d6efd;
+    }
+    .order-summary-card .d-flex {
+        font-size: 1.1rem;
+        margin-bottom: 10px;
+    }
+    .order-summary-card hr {
+        margin: 15px 0;
+    }
+    #checkout-button {
+        background-color: #0d6efd;
+        border: none;
+        font-weight: 700;
+        padding: 12px 0;
+        border-radius: 6px;
+        width: 100%;
+        color: white;
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+    #checkout-button:hover {
+        background-color: #0b5ed7;
+    }
+    #address-form-container {
+        margin-top: 20px;
+        animation: fadeIn 0.5s ease forwards;
+    }
+    @keyframes fadeIn {
+        from {opacity: 0;}
+        to {opacity: 1;}
+    }
+    #address-form .form-label {
+        font-weight: 600;
+    }
+    #address-form .form-control {
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+        padding: 8px 12px;
+        font-size: 1rem;
+    }
+    #address-form button {
+        margin-top: 10px;
+    }
+    #address-success-message {
+        font-weight: 600;
+        color: #198754;
+    }
+</style>
+<div class="cart-container">
+    <h1>Shopping Cart</h1>
+    
+    <div id="cart-items-container">
+        <!-- Cart items will be loaded here via JavaScript -->
+        <p>Loading cart items...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const cartItemsContainer = document.getElementById('cart-items-container');
+        const cartItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
+        
+        if (cartItems.length === 0) {
+            cartItemsContainer.innerHTML = `
+                <div class="alert alert-info">
+                    <p>Your cart is empty</p>
+                    <a href="{% url 'products' %}" class="btn btn-primary mt-3">Go Shopping</a>
+                </div>
+            `;
+        } else {
+            let itemsHtml = `
+                <div class="row">
+                    <div class="col-md-8">
+            `;
+            
+            cartItems.forEach(item => {
+                itemsHtml += `
+                    <div class="card mb-3" data-id="${item.product}">
+                        <div class="row g-0">
+                            <div class="col-md-2">
+                                <img src="${item.image}" class="img-fluid rounded-start" alt="${item.name}">
+                            </div>
+                            <div class="col-md-10">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <h5 class="card-title">${item.name}</h5>
+                                        <button class="btn btn-sm btn-danger remove-item" data-id="${item.product}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                    <p class="card-text">$${item.price}</p>
+                                    <div class="d-flex align-items-center">
+                                        <label class="me-2">Quantity:</label>
+                                        <select class="form-select qty-select" style="width: auto;" data-id="${item.product}">
+                                            ${Array.from({length: 10}, (_, i) => i + 1).map(num => 
+                                                `<option value="${num}" ${num === item.qty ? 'selected' : ''}>${num}</option>`
+                                            ).join('')}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            const itemsPrice = cartItems.reduce((acc, item) => acc + (item.price * item.qty), 0).toFixed(2);
+            const shippingPrice = (itemsPrice > 100 ? 0 : 10).toFixed(2);
+            const taxPrice = (0.15 * itemsPrice).toFixed(2);
+            const totalPrice = (parseFloat(itemsPrice) + parseFloat(shippingPrice) + parseFloat(taxPrice)).toFixed(2);
+            
+            itemsHtml += `
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4>Order Summary</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Items:</span>
+                                    <span>$${itemsPrice}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Shipping:</span>
+                                    <span>$${shippingPrice}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Tax:</span>
+                                    <span>$${taxPrice}</span>
+                                </div>
+                                <hr>
+                                <div class="d-flex justify-content-between mb-3">
+                                    <span><strong>Total:</strong></span>
+                                    <span><strong>$${totalPrice}</strong></span>
+                                </div>
+                                <button id="checkout-button" class="btn btn-primary w-100">
+                                    Proceed to Checkout
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            cartItemsContainer.innerHTML = itemsHtml;
+            
+            // Add event listeners for quantity changes
+            document.querySelectorAll('.qty-select').forEach(select => {
+                select.addEventListener('change', function() {
+                    const productId = this.dataset.id;
+                    const qty = parseInt(this.value);
+                    
+                    let cartItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
+                    cartItems = cartItems.map(item => 
+                        item.product === productId ? {...item, qty} : item
+                    );
+                    
+                    localStorage.setItem('cartItems', JSON.stringify(cartItems));
+                    window.location.reload();
+                });
+            });
+            
+            // Add event listeners for item removal
+            document.querySelectorAll('.remove-item').forEach(button => {
+                button.addEventListener('click', function() {
+                    const productId = this.dataset.id;
+                    
+                    let cartItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
+                    cartItems = cartItems.filter(item => item.product !== productId);
+                    
+                    localStorage.setItem('cartItems', JSON.stringify(cartItems));
+                    window.location.reload();
+                });
+            });
+            
+            // Add event listener for checkout
+            document.getElementById('checkout-button').addEventListener('click', function() {
+                // Hide order summary card and show address form
+                document.querySelector('.col-md-4 .card').style.display = 'none';
+                const addressFormHtml = `
+                    <div id="address-form-container" style="margin-top: 20px;">
+                        <h5>Enter Shipping Address</h5>
+                                <form id="address-form">
+                                    <div class="mb-3">
+                                        <label for="street" class="form-label">Street</label>
+                                        <input type="text" class="form-control" id="street" name="street" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="city" class="form-label">City</label>
+                                        <input type="text" class="form-control" id="city" name="city" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="country" class="form-label">Country</label>
+                                        <input type="text" class="form-control" id="country" name="country" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="phone" class="form-label">Phone</label>
+                                        <input type="tel" class="form-control" id="phone" name="phone" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-success w-100">Submit Address</button>
+                                </form>
+                        <div id="address-success-message" class="alert alert-success mt-3" style="display:none;">
+                            Successful proceed
+                        </div>
+                    </div>
+                `;
+                document.querySelector('.col-md-4').insertAdjacentHTML('beforeend', addressFormHtml);
+
+                // Add event listener for address form submission
+                document.getElementById('address-form').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    // Here you can add code to send address data to backend if needed
+
+                    // Show success message
+                    document.getElementById('address-success-message').style.display = 'block';
+                    // Optionally hide the form after submission
+                    this.style.display = 'none';
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

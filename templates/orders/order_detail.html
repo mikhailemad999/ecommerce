@@ -1,0 +1,163 @@
+<!-- templates/orders/order_detail.html -->
+{% extends 'base.html' %}
+
+{% block title %}Order {{ order.id }}{% endblock %}
+
+{% block content %}
+<div class="order-detail-container">
+    <div class="back-button mb-4">
+        <a href="{% url 'myorders' %}" class="btn btn-light">
+            <i class="fas fa-arrow-left"></i> Back to My Orders
+        </a>
+    </div>
+    
+    <h1>Order: {{ order.id }}</h1>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4>Shipping</h4>
+                </div>
+                <div class="card-body">
+                    <p><strong>Name:</strong> {{ order.user.name }}</p>
+                    <p><strong>Email:</strong> {{ order.user.email }}</p>
+                    <p><strong>Address:</strong> 
+                        {{ order.shippingAddress.address }}, 
+                        {{ order.shippingAddress.city }}, 
+                        {{ order.shippingAddress.postalCode }}, 
+                        {{ order.shippingAddress.country }}
+                    </p>
+                    
+                    {% if order.isDelivered %}
+                        <div class="alert alert-success">
+                            Delivered on {{ order.deliveredAt|date:"F d, Y" }}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-danger">
+                            Not Delivered
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4>Payment Method</h4>
+                </div>
+                <div class="card-body">
+                    <p><strong>Method:</strong> {{ order.paymentMethod }}</p>
+                    
+                    {% if order.isPaid %}
+                        <div class="alert alert-success">
+                            Paid on {{ order.paidAt|date:"F d, Y" }}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-danger">
+                            Not Paid
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h4>Order Items</h4>
+                </div>
+                <div class="card-body">
+                    {% for item in order.orderItems %}
+                        <div class="order-item mb-3">
+                            <div class="row">
+                                <div class="col-md-2">
+                                    <img src="{{ item.image }}" alt="{{ item.name }}" class="img-fluid rounded">
+                                </div>
+                                <div class="col-md-6">
+                                    <a href="{% url 'product' item.product %}">{{ item.name }}</a>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    {{ item.qty }} x ${{ item.price }} = ${{ item.qty|multiply:item.price }}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Order Summary</h4>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Items:</span>
+                        <span>${{ order.totalPrice|subtract:order.shippingPrice|subtract:order.taxPrice }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Shipping:</span>
+                        <span>${{ order.shippingPrice }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Tax:</span>
+                        <span>${{ order.taxPrice }}</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span><strong>Total:</strong></span>
+                        <span><strong>${{ order.totalPrice }}</strong></span>
+                    </div>
+                    
+                    {% if not order.isPaid %}
+                        <div id="paypal-button-container" class="mt-3"></div>
+                    {% endif %}
+                    
+                    {% if user.is_staff and order.isPaid and not order.isDelivered %}
+                        <form action="{% url 'deliver' order.id %}" method="POST" class="mt-3">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary w-100">
+                                Mark as Delivered
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if not order.isPaid %}
+<script src="https://www.paypal.com/sdk/js?client-id=YOUR_PAYPAL_CLIENT_ID"></script>
+<script>
+    paypal.Buttons({
+        createOrder: function(data, actions) {
+            return actions.order.create({
+                purchase_units: [{
+                    amount: {
+                        value: '{{ order.totalPrice }}'
+                    }
+                }]
+            });
+        },
+        onApprove: function(data, actions) {
+            return actions.order.capture().then(function(details) {
+                // Call your server to save the transaction
+                return fetch(`/api/orders/{{ order.id }}/pay/`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify(details)
+                })
+                .then(response => {
+                    window.location.reload();
+                });
+            });
+        }
+    }).render('#paypal-button-container');
+</script>
+{% endif %}
+{% endblock %}

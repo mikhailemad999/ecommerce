@@ -1,0 +1,28 @@
+<!-- templates/orders/order_list.html -->
+{% extends 'base.html' %}
+
+{% block title %}Admin - Orders{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <h1>Orders</h1>
+    
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>USER</th>
+                    <th>DATE</th>
+                    <th>TOTAL</th>
+                    <th>PAID</th>
+                    <th>DELIVERED</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                    <tr>
+                        <td>{{ order.id }}</td>
+                        <td>{{ order.user.name }}</td>
+                        <td>{{ order.createdAt|date:"

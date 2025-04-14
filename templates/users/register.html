@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<style>
+    .auth-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 80vh;
+        background-color: #f8f9fa;
+        padding: 20px;
+    }
+    .auth-card {
+        background: #fff;
+        padding: 40px 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        width: 100%;
+        max-width: 400px;
+        box-sizing: border-box;
+    }
+    .auth-card h1 {
+        margin-bottom: 30px;
+        font-weight: 700;
+        font-size: 2rem;
+        text-align: center;
+        color: #343a40;
+    }
+    .form-group label {
+        font-weight: 600;
+        color: #495057;
+    }
+    .form-group input {
+        height: 45px;
+        font-size: 1rem;
+        padding: 0 12px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        transition: border-color 0.3s ease;
+    }
+    .form-group input:focus {
+        border-color: #0d6efd;
+        outline: none;
+        box-shadow: 0 0 5px rgba(13, 110, 253, 0.5);
+    }
+    button.btn-primary {
+        background-color: #0d6efd;
+        border: none;
+        font-size: 1.1rem;
+        font-weight: 600;
+        padding: 12px 0;
+        border-radius: 6px;
+        transition: background-color 0.3s ease;
+    }
+    button.btn-primary:hover {
+        background-color: #0b5ed7;
+    }
+    .auth-redirect {
+        margin-top: 20px;
+        text-align: center;
+        font-size: 0.95rem;
+        color: #6c757d;
+    }
+    .auth-redirect a {
+        color: #0d6efd;
+        text-decoration: none;
+        font-weight: 600;
+    }
+    .auth-redirect a:hover {
+        text-decoration: underline;
+    }
+</style>
+<div class="auth-container">
+    <div class="auth-card">
+        <h1>Register</h1>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        
+        <form method="POST" action="{% url 'register' %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="name">Name</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required>
+            </div>
+            <input type="hidden" name="redirect" value="{{ request.GET.redirect }}">
+            <button type="submit" class="btn btn-primary btn-lg w-100">Register</button>
+        </form>
+        
+        <div class="auth-redirect">
+            Have an Account? <a href="{% url 'token_obtain_pair' %}{% if request.GET.redirect %}?redirect={{ request.GET.redirect }}{% endif %}">Login</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
