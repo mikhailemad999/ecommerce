@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-07T22:50:30.541Z",
+  "entries": [
+    "api-patterns",
+    "backend-architect",
+    "database-design",
+    "django-perf-review",
+    "django-pro",
+    "docker-expert",
+    "postgres-best-practices",
+    "react-patterns",
+    "saas-multi-tenant",
+    "shadcn",
+    "tailwind-patterns",
+    "tanstack-query-expert",
+    "test-driven-development",
+    "zod-validation-expert",
+    "zustand-store-ts"
+  ]
+}

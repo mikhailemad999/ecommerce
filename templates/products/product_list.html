@@ -1,43 +1,226 @@
-<!-- templates/products/product_list.html -->
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Products{% endblock %}
+{% block title %}Explore Catalog | LuxeCommerce{% endblock %}
 
 {% block content %}
-<div class="products-container">
-    <h1>Products</h1>
+<!-- Hero Section (Shown on clean catalog view) -->
+{% if not keyword and not selected_category %}
+<section class="luxe-hero mb-4">
+    <div class="row align-items-center">
+        <div class="col-lg-7">
+            <span class="luxe-hero-tag"><i class="fas fa-sparkles me-1 text-warning"></i> Fall / Winter 2026 Collection</span>
+            <h1 class="luxe-hero-title">Next-Generation Tech Crafted for Modern Life.</h1>
+            <p class="luxe-hero-subtitle">Discover precision-engineered audio, computing, and gaming hardware backed by official guarantees and white-glove support.</p>
+            <div class="d-flex gap-3 flex-wrap">
+                <a href="#catalog-grid" class="btn-luxe btn-luxe-primary">
+                    <i class="fas fa-arrow-down"></i> Browse Collection
+                </a>
+                <a href="?sort=rating#catalog-grid" class="btn-luxe btn-luxe-secondary">
+                    <i class="fas fa-star text-warning"></i> Top Rated
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-5 text-center d-none d-lg-block">
+            <div style="background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, transparent 70%); padding: 20px;">
+                <img src="{% static 'images/playstation.jpg' %}" alt="Featured Console" class="img-fluid" style="max-height: 280px; filter: drop-shadow(0 15px 25px rgba(0,0,0,0.5)); transform: rotate(-8deg);">
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Catalog Controls Bar -->
+<div id="catalog-grid" class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pt-2">
+    <div>
+        <h2 class="h3 fw-bold mb-1">
+            {% if keyword %}
+                Search Results for "<span class="text-primary">{{ keyword }}</span>"
+            {% elif selected_category %}
+                {{ selected_category }}
+            {% else %}
+                Curated Electronics
+            {% endif %}
+        </h2>
+        <p class="text-muted small mb-0">Showing {{ total_count }} products available for instant dispatch</p>
+    </div>
     
-    <div class="row">
-        {% for product in products %}
-            <div class="col-md-3 mb-4">
-                <div class="card h-100">
-                    <img src="{{ product.image }}" class="card-img-top" alt="{{ product.name }}" style="height: 200px; object-fit: contain;">
-                    <div class="card-body">
-                        <h5 class="card-title">{{ product.name }}</h5>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="rating">
-                                {% for i in "12345" %}
-                                    {% if forloop.counter <= product.rating %}
-                                        <i class="fas fa-star text-warning"></i>
-                                    {% elif forloop.counter <= product.rating|add:0.5 %}
-                                        <i class="fas fa-star-half-alt text-warning"></i>
-                                    {% else %}
-                                        <i class="far fa-star text-warning"></i>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                            <small>{{ product.numReviews }} reviews</small>
+    <!-- Sort Dropdown -->
+    <div class="d-flex align-items-center gap-2">
+        <label for="sort-select" class="text-muted small fw-semibold text-nowrap">Sort by:</label>
+        <select id="sort-select" class="form-select form-select-sm" style="width: 190px; border-radius: 8px;" onchange="applySort(this.value)">
+            <option value="newest" {% if sort == 'newest' or not sort %}selected{% endif %}>Latest Arrivals</option>
+            <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Price: Low to High</option>
+            <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Price: High to Low</option>
+            <option value="rating" {% if sort == 'rating' %}selected{% endif %}>Highest Rated</option>
+        </select>
+    </div>
+</div>
+
+<!-- Category Chips -->
+<div class="filter-chip-bar">
+    <a href="{% url 'products' %}{% if keyword %}?keyword={{ keyword }}{% endif %}" class="filter-chip {% if not selected_category %}active{% endif %}">
+        All Categories
+    </a>
+    {% for cat in categories %}
+        <a href="?category={{ cat }}{% if keyword %}&keyword={{ keyword }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" class="filter-chip {% if selected_category == cat %}active{% endif %}">
+            {{ cat }}
+        </a>
+    {% endfor %}
+    
+    {% if keyword or selected_category %}
+        <a href="{% url 'products' %}" class="btn btn-sm btn-outline-danger ms-auto d-inline-flex align-items-center gap-1" style="border-radius: 20px;">
+            <i class="fas fa-times"></i> Clear Filters
+        </a>
+    {% endif %}
+</div>
+
+<!-- Products Grid -->
+<div class="row g-4">
+    {% for product in products %}
+        <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6">
+            <div class="product-card">
+                <!-- Image Box -->
+                <div class="product-image-wrap">
+                    <a href="{% url 'product' product.id %}" class="d-block w-100 h-100 text-center">
+                        <img src="{{ product.image }}" alt="{{ product.name }}" loading="lazy">
+                    </a>
+                    
+                    <!-- Stock status overlay -->
+                    <div class="position-absolute top-0 start-0 m-3">
+                        {% if product.countInStock > 3 %}
+                            <span class="badge-stock badge-in-stock"><i class="fas fa-check-circle"></i> In Stock</span>
+                        {% elif product.countInStock > 0 %}
+                            <span class="badge-stock badge-low-stock"><i class="fas fa-hourglass-half"></i> Only {{ product.countInStock }} left</span>
+                        {% else %}
+                            <span class="badge-stock badge-out-of-stock"><i class="fas fa-times-circle"></i> Sold Out</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Card Details -->
+                <div class="p-3 d-flex flex-column flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="product-category-tag">{{ product.category|default:"Electronics" }}</span>
+                        <span class="text-muted small">{{ product.brand }}</span>
+                    </div>
+                    
+                    <a href="{% url 'product' product.id %}" class="text-decoration-none">
+                        <h3 class="product-title text-dark">{{ product.name }}</h3>
+                    </a>
+                    
+                    <!-- Rating -->
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="rating-stars">
+                            {% for i in "12345" %}
+                                {% if forloop.counter <= product.rating %}
+                                    <i class="fas fa-star"></i>
+                                {% elif forloop.counter <= product.rating|add:0.5 %}
+                                    <i class="fas fa-star-half-alt"></i>
+                                {% else %}
+                                    <i class="far fa-star text-muted"></i>
+                                {% endif %}
+                            {% endfor %}
                         </div>
-                        <p class="card-text mt-2">${{ product.price }}</p>
-                        <a href="{% url 'product' product.id %}" class="btn btn-primary">View</a>
+                        <span class="text-muted small">({{ product.numReviews }})</span>
+                    </div>
+                    
+                    <!-- Price and Action Row -->
+                    <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small" style="font-size: 0.72rem; line-height: 1;">Price</div>
+                            <div class="product-price">${{ product.price }}</div>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'product' product.id %}" class="btn btn-sm btn-outline-secondary px-3" style="border-radius: 8px;" title="View Specifications">
+                                Details
+                            </a>
+                            {% if product.countInStock > 0 %}
+                                <button type="button" class="btn btn-sm btn-primary px-3 add-to-cart-quick" 
+                                    data-id="{{ product.id }}" 
+                                    data-name="{{ product.name }}" 
+                                    data-price="{{ product.price }}" 
+                                    data-image="{{ product.image }}"
+                                    data-stock="{{ product.countInStock }}"
+                                    style="border-radius: 8px;"
+                                    title="Quick Add">
+                                    <i class="fas fa-cart-plus"></i>
+                                </button>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
-        {% empty %}
-            <div class="col-12">
-                <p>No products found.</p>
+        </div>
+    {% empty %}
+        <div class="col-12 py-5 text-center">
+            <div class="luxe-card py-5">
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h3 class="fw-bold">No Products Found</h3>
+                <p class="text-muted">We couldn't find any products matching your current filters.</p>
+                <a href="{% url 'products' %}" class="btn-luxe btn-luxe-primary mt-2">
+                    Reset All Filters
+                </a>
             </div>
-        {% endfor %}
-    </div>
+        </div>
+    {% endfor %}
 </div>
+
+<!-- Pagination Controls -->
+{% if pages > 1 %}
+<nav class="d-flex justify-content-center mt-5" aria-label="Catalog Page Navigation">
+    <ul class="pagination gap-1 shadow-sm p-1 bg-white" style="border-radius: 12px; border: 1px solid var(--surface-border);">
+        {% if page > 1 %}
+            <li class="page-item">
+                <a class="page-link border-0 text-dark" href="?page={{ page|add:'-1' }}{% if keyword %}&keyword={{ keyword }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+        {% endif %}
+        
+        {% for p in pages_range %}
+            <li class="page-item {% if p == page %}active{% endif %}">
+                <a class="page-link border-0 {% if p == page %}bg-primary text-white fw-bold{% else %}text-dark{% endif %}" href="?page={{ p }}{% if keyword %}&keyword={{ keyword }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" style="border-radius: 8px;">
+                    {{ p }}
+                </a>
+            </li>
+        {% endfor %}
+        
+        {% if page < pages %}
+            <li class="page-item">
+                <a class="page-link border-0 text-dark" href="?page={{ page|add:'1' }}{% if keyword %}&keyword={{ keyword }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function applySort(sortVal) {
+        const url = new URL(window.location);
+        url.searchParams.set('sort', sortVal);
+        url.searchParams.set('page', '1');
+        window.location.href = url.toString();
+    }
+    
+    // Quick Add To Cart Button Handler
+    document.querySelectorAll('.add-to-cart-quick').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const productData = {
+                id: this.dataset.id,
+                name: this.dataset.name,
+                price: this.dataset.price,
+                image: this.dataset.image,
+                countInStock: this.dataset.stock
+            };
+            addProductToCart(productData, 1, true);
+        });
+    });
+</script>
 {% endblock %}

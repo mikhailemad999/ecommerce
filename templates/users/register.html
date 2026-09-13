@@ -1,111 +1,70 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Register{% endblock %}
+{% block title %}Create Account | LuxeCommerce{% endblock %}
 
 {% block content %}
-<style>
-    .auth-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 80vh;
-        background-color: #f8f9fa;
-        padding: 20px;
-    }
-    .auth-card {
-        background: #fff;
-        padding: 40px 30px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        width: 100%;
-        max-width: 400px;
-        box-sizing: border-box;
-    }
-    .auth-card h1 {
-        margin-bottom: 30px;
-        font-weight: 700;
-        font-size: 2rem;
-        text-align: center;
-        color: #343a40;
-    }
-    .form-group label {
-        font-weight: 600;
-        color: #495057;
-    }
-    .form-group input {
-        height: 45px;
-        font-size: 1rem;
-        padding: 0 12px;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-        transition: border-color 0.3s ease;
-    }
-    .form-group input:focus {
-        border-color: #0d6efd;
-        outline: none;
-        box-shadow: 0 0 5px rgba(13, 110, 253, 0.5);
-    }
-    button.btn-primary {
-        background-color: #0d6efd;
-        border: none;
-        font-size: 1.1rem;
-        font-weight: 600;
-        padding: 12px 0;
-        border-radius: 6px;
-        transition: background-color 0.3s ease;
-    }
-    button.btn-primary:hover {
-        background-color: #0b5ed7;
-    }
-    .auth-redirect {
-        margin-top: 20px;
-        text-align: center;
-        font-size: 0.95rem;
-        color: #6c757d;
-    }
-    .auth-redirect a {
-        color: #0d6efd;
-        text-decoration: none;
-        font-weight: 600;
-    }
-    .auth-redirect a:hover {
-        text-decoration: underline;
-    }
-</style>
-<div class="auth-container">
-    <div class="auth-card">
-        <h1>Register</h1>
-        
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-        
-        <form method="POST" action="{% url 'register' %}">
-            {% csrf_token %}
-            <div class="form-group">
-                <label for="name">Name</label>
-                <input type="text" id="name" name="name" required>
+<div class="row justify-content-center py-4">
+    <div class="col-md-6 col-lg-5">
+        <div class="luxe-card p-4 p-md-5">
+            <div class="text-center mb-4">
+                <div class="d-inline-flex align-items-center justify-content-center mb-3" style="width: 54px; height: 54px; border-radius: 50%; background: var(--brand-indigo-light); color: var(--brand-indigo);">
+                    <i class="fas fa-user-plus fa-lg"></i>
+                </div>
+                <h2 class="h3 fw-bold mb-1">Create an Account</h2>
+                <p class="text-muted small">Join LuxeCommerce for bespoke ordering and order tracking.</p>
             </div>
-            <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" name="email" required>
+            
+            <form method="POST" action="{% url 'register' %}">
+                {% csrf_token %}
+                
+                {% if redirect %}
+                    <input type="hidden" name="redirect" value="{{ redirect }}">
+                {% endif %}
+                
+                <div class="mb-3">
+                    <label for="name" class="form-label">Full Name <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="fas fa-user text-muted"></i></span>
+                        <input type="text" class="form-control border-start-0 ps-0" id="name" name="name" placeholder="e.g. Mikhail Emad" required autofocus>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email Address <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="fas fa-envelope text-muted"></i></span>
+                        <input type="email" class="form-control border-start-0 ps-0" id="email" name="email" placeholder="name@example.com" required>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="fas fa-lock text-muted"></i></span>
+                        <input type="password" class="form-control border-start-0 ps-0" id="password" name="password" placeholder="At least 6 characters" minlength="6" required>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="confirmPassword" class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="fas fa-lock-check text-muted"></i></span>
+                        <input type="password" class="form-control border-start-0 ps-0" id="confirmPassword" name="confirmPassword" placeholder="Re-type your password" minlength="6" required>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn-luxe btn-luxe-primary w-100 py-3 mb-3">
+                    <i class="fas fa-arrow-right me-1"></i> Complete Registration
+                </button>
+            </form>
+            
+            <div class="text-center pt-3 border-top">
+                <span class="text-muted small">Already an existing customer?</span>
+                <a href="{% url 'login' %}{% if redirect %}?redirect={{ redirect }}{% endif %}" class="fw-bold text-primary small ms-1">
+                    Sign In Here
+                </a>
             </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-            <div class="form-group">
-                <label for="confirmPassword">Confirm Password</label>
-                <input type="password" id="confirmPassword" name="confirmPassword" required>
-            </div>
-            <input type="hidden" name="redirect" value="{{ request.GET.redirect }}">
-            <button type="submit" class="btn btn-primary btn-lg w-100">Register</button>
-        </form>
-        
-        <div class="auth-redirect">
-            Have an Account? <a href="{% url 'token_obtain_pair' %}{% if request.GET.redirect %}?redirect={{ request.GET.redirect }}{% endif %}">Login</a>
         </div>
     </div>
 </div>

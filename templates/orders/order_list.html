@@ -1,28 +1,97 @@
-<!-- templates/orders/order_list.html -->
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Admin - Orders{% endblock %}
+{% block title %}Admin Orders Management | LuxeCommerce{% endblock %}
 
 {% block content %}
-<div class="admin-container">
-    <h1>Orders</h1>
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <h1 class="h2 fw-bold mb-1">Customer Orders</h1>
+        <p class="text-muted small mb-0">Total system orders: {{ total_orders }}</p>
+    </div>
     
+    <!-- Status Filter Buttons -->
+    <div class="btn-group shadow-sm" role="group">
+        <a href="{% url 'orders' %}?status=all" class="btn btn-sm {% if filter_status == 'all' or not filter_status %}btn-dark{% else %}btn-outline-dark{% endif %}">
+            All Orders
+        </a>
+        <a href="{% url 'orders' %}?status=paid" class="btn btn-sm {% if filter_status == 'paid' %}btn-dark{% else %}btn-outline-dark{% endif %}">
+            Paid
+        </a>
+        <a href="{% url 'orders' %}?status=unpaid" class="btn btn-sm {% if filter_status == 'unpaid' %}btn-dark{% else %}btn-outline-dark{% endif %}">
+            Unpaid
+        </a>
+        <a href="{% url 'orders' %}?status=pending_delivery" class="btn btn-sm {% if filter_status == 'pending_delivery' %}btn-dark{% else %}btn-outline-dark{% endif %}">
+            Needs Delivery
+        </a>
+        <a href="{% url 'orders' %}?status=delivered" class="btn btn-sm {% if filter_status == 'delivered' %}btn-dark{% else %}btn-outline-dark{% endif %}">
+            Delivered
+        </a>
+    </div>
+</div>
+
+<div class="luxe-card p-0 overflow-hidden">
     <div class="table-responsive">
-        <table class="table table-striped">
-            <thead>
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
                 <tr>
-                    <th>ID</th>
-                    <th>USER</th>
-                    <th>DATE</th>
-                    <th>TOTAL</th>
-                    <th>PAID</th>
-                    <th>DELIVERED</th>
-                    <th></th>
+                    <th class="ps-4 py-3">ORDER ID</th>
+                    <th class="py-3">CUSTOMER</th>
+                    <th class="py-3">DATE</th>
+                    <th class="py-3">TOTAL</th>
+                    <th class="py-3">PAID</th>
+                    <th class="py-3">DELIVERED</th>
+                    <th class="text-end pe-4 py-3">ACTIONS</th>
                 </tr>
             </thead>
             <tbody>
                 {% for order in orders %}
                     <tr>
-                        <td>{{ order.id }}</td>
-                        <td>{{ order.user.name }}</td>
-                        <td>{{ order.createdAt|date:"
+                        <td class="ps-4 fw-bold text-dark">#{{ order.id }}</td>
+                        <td>
+                            <div class="fw-semibold">{{ order.user.name|default:"Customer" }}</div>
+                            <small class="text-muted">{{ order.user.email }}</small>
+                        </td>
+                        <td class="text-muted small">{{ order.createdAt|slice:":10" }}</td>
+                        <td class="fw-bold text-dark">${{ order.totalPrice }}</td>
+                        <td>
+                            {% if order.isPaid %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                    <i class="fas fa-check-circle me-1"></i> Paid
+                                </span>
+                            {% else %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                                    <i class="fas fa-times-circle me-1"></i> Unpaid
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if order.isDelivered %}
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
+                                    <i class="fas fa-truck-ramp-box me-1"></i> Delivered
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1">
+                                    <i class="fas fa-clock me-1"></i> Processing
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4">
+                            <a href="{% url 'user-order' order.id %}" class="btn btn-sm btn-outline-primary" style="border-radius: 8px;">
+                                Manage &rarr;
+                            </a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="fas fa-box-open fa-3x mb-3 opacity-50"></i>
+                            <p>No orders found matching this filter.</p>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

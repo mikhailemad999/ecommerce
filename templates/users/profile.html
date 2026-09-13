@@ -1,201 +1,109 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Profile{% endblock %}
+{% block title %}My Account Profile | LuxeCommerce{% endblock %}
 
 {% block content %}
-<style>
-    .profile-container {
-        max-width: 960px;
-        margin: 40px auto;
-        padding: 0 20px;
-        font-family: Arial, sans-serif;
-    }
-    .profile-grid {
-        display: grid;
-        grid-template-columns: 1fr 1.5fr;
-        gap: 40px;
-    }
-    .profile-update, .profile-orders {
-        background: #fff;
-        padding: 30px 25px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    .profile-update h2, .profile-orders h2 {
-        margin-bottom: 25px;
-        font-weight: 700;
-        font-size: 1.8rem;
-        color: #343a40;
-        border-bottom: 2px solid #0d6efd;
-        padding-bottom: 8px;
-    }
-    .form-group {
-        margin-bottom: 20px;
-    }
-    .form-group label {
-        display: block;
-        font-weight: 600;
-        margin-bottom: 6px;
-        color: #495057;
-    }
-    .form-group input {
-        width: 100%;
-        height: 42px;
-        padding: 0 12px;
-        font-size: 1rem;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-        transition: border-color 0.3s ease;
-    }
-    .form-group input:focus {
-        border-color: #0d6efd;
-        outline: none;
-        box-shadow: 0 0 5px rgba(13, 110, 253, 0.5);
-    }
-    button.btn-primary {
-        background-color: #0d6efd;
-        border: none;
-        font-size: 1.1rem;
-        font-weight: 600;
-        padding: 12px 0;
-        border-radius: 6px;
-        width: 100%;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-    }
-    button.btn-primary:hover {
-        background-color: #0b5ed7;
-    }
-    .orders-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.95rem;
-    }
-    .orders-table th, .orders-table td {
-        padding: 12px 15px;
-        border: 1px solid #dee2e6;
-        text-align: center;
-    }
-    .orders-table th {
-        background-color: #e9ecef;
-        font-weight: 700;
-        color: #495057;
-    }
-    .status {
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-weight: 600;
-        font-size: 0.85rem;
-        color: #fff;
-        display: inline-block;
-    }
-    .status.paid {
-        background-color: #198754;
-    }
-    .status.not-paid {
-        background-color: #dc3545;
-    }
-    .status.delivered {
-        background-color: #0d6efd;
-    }
-    .status.not-delivered {
-        background-color: #6c757d;
-    }
-    .btn-sm {
-        background-color: #0d6efd;
-        color: #fff;
-        padding: 6px 12px;
-        border-radius: 4px;
-        font-size: 0.85rem;
-        text-decoration: none;
-        display: inline-block;
-        transition: background-color 0.3s ease;
-    }
-    .btn-sm:hover {
-        background-color: #0b5ed7;
-        color: #fff;
-    }
-    p {
-        font-size: 1rem;
-        color: #6c757d;
-    }
-</style>
-<div class="profile-container">
-    <div class="profile-grid">
-        <div class="profile-update">
-            <h2>User Profile</h2>
+<div class="mb-4">
+    <h1 class="h2 fw-bold mb-1">Account & Preferences</h1>
+    <p class="text-muted small">Update your personal contact details, security credentials, and review past orders.</p>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: Profile Settings -->
+    <div class="col-lg-5">
+        <div class="luxe-card p-4">
+            <h4 class="fw-bold mb-4 pb-2 border-bottom d-flex align-items-center gap-2">
+                <i class="fas fa-user-edit text-primary"></i> Personal Information
+            </h4>
             
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-            
-            <form method="POST" action="{% url 'user-profile-update' %}">
+            <form method="POST" action="{% url 'users-profile' %}">
                 {% csrf_token %}
-                <div class="form-group">
-                    <label for="name">Name</label>
-                    <input type="text" id="name" name="name" value="{{ user.first_name }}" required>
+                
+                <div class="mb-3">
+                    <label for="name" class="form-label">Full Name</label>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ user.first_name }}" required>
                 </div>
-                <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" name="email" value="{{ user.email }}" required>
+                
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email Address</label>
+                    <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
                 </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" placeholder="Enter new password">
+                
+                <hr class="my-4">
+                <h6 class="fw-bold mb-3">Change Password <span class="text-muted fw-normal small">(Optional)</span></h6>
+                
+                <div class="mb-3">
+                    <label for="password" class="form-label">New Password</label>
+                    <input type="password" class="form-control" id="password" name="password" placeholder="Leave blank to keep current">
                 </div>
-                <div class="form-group">
-                    <label for="confirmPassword">Confirm Password</label>
-                    <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm new password">
+                
+                <div class="mb-4">
+                    <label for="confirmPassword" class="form-label">Confirm New Password</label>
+                    <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" placeholder="Confirm password">
                 </div>
-                <button type="submit" class="btn btn-primary">Update</button>
+                
+                <button type="submit" class="btn-luxe btn-luxe-primary w-100 py-3">
+                    <i class="fas fa-save me-1"></i> Save Profile Changes
+                </button>
             </form>
         </div>
-        
-        <div class="profile-orders">
-            <h2>My Orders</h2>
+    </div>
+    
+    <!-- Right Column: My Orders Quick History -->
+    <div class="col-lg-7">
+        <div class="luxe-card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+                <h4 class="fw-bold mb-0 d-flex align-items-center gap-2">
+                    <i class="fas fa-box-open text-primary"></i> Recent Purchases
+                </h4>
+                <a href="{% url 'myorders' %}" class="small text-primary fw-semibold">View All &rarr;</a>
+            </div>
+            
             {% if orders %}
-                <table class="orders-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Date</th>
-                            <th>Total</th>
-                            <th>Paid</th>
-                            <th>Delivered</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for order in orders %}
-                        <tr>
-                            <td>{{ order.id }}</td>
-                            <td>{{ order.createdAt|date:"M d, Y" }}</td>
-                            <td>${{ order.totalPrice }}</td>
-                            <td>
-                                {% if order.isPaid %}
-                                    <span class="status paid">{{ order.paidAt|date:"M d, Y" }}</span>
-                                {% else %}
-                                    <span class="status not-paid">Not Paid</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if order.isDelivered %}
-                                    <span class="status delivered">{{ order.deliveredAt|date:"M d, Y" }}</span>
-                                {% else %}
-                                    <span class="status not-delivered">Not Delivered</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <a href="{% url 'user-order' order.id %}" class="btn btn-sm">Details</a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 small">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ORDER</th>
+                                <th>DATE</th>
+                                <th>TOTAL</th>
+                                <th>STATUS</th>
+                                <th class="text-end">ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders|slice:":6" %}
+                                <tr>
+                                    <td class="fw-bold text-dark">#{{ order.id }}</td>
+                                    <td class="text-muted">{{ order.createdAt|slice:":10" }}</td>
+                                    <td class="fw-bold text-dark">${{ order.totalPrice }}</td>
+                                    <td>
+                                        {% if order.isPaid %}
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                                Paid
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                                                Unpaid
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="{% url 'user-order' order.id %}" class="btn btn-sm btn-outline-dark px-2 py-1" style="border-radius: 6px;">
+                                            Details
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             {% else %}
-                <p>You have no orders yet.</p>
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-shopping-bag fa-3x mb-3 opacity-50"></i>
+                    <p class="mb-0">No purchase records found.</p>
+                </div>
             {% endif %}
         </div>
     </div>

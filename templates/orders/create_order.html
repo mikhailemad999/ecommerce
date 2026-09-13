@@ -1,100 +1,157 @@
-<!-- templates/orders/create_order.html -->
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Checkout{% endblock %}
+{% block title %}Secure Checkout | LuxeCommerce{% endblock %}
 
 {% block content %}
-<div class="checkout-container">
-    <h1>Checkout</h1>
+<div class="mb-4">
+    <!-- Stepper indicator -->
+    <div class="order-stepper mb-4">
+        <div class="step-item completed">
+            <div class="step-circle"><i class="fas fa-check"></i></div>
+            <div class="step-label">Shopping Bag</div>
+        </div>
+        <div class="step-item active">
+            <div class="step-circle">2</div>
+            <div class="step-label">Shipping & Payment</div>
+        </div>
+        <div class="step-item">
+            <div class="step-circle">3</div>
+            <div class="step-label">Order Confirmation</div>
+        </div>
+    </div>
     
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h4>Shipping Information</h4>
-                </div>
-                <div class="card-body">
-                    <form id="order-form">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label for="address" class="form-label">Address</label>
-                            <input type="text" class="form-control" id="address" name="address" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="city" class="form-label">City</label>
-                            <input type="text" class="form-control" id="city" name="city" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="postalCode" class="form-label">Postal Code</label>
-                            <input type="text" class="form-control" id="postalCode" name="postalCode" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="country" class="form-label">Country</label>
-                            <input type="text" class="form-control" id="country" name="country" required>
-                        </div>
-                        
-                        <h4 class="mt-4">Payment Method</h4>
-                        <div class="mb-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="paymentMethod" id="paypal" value="PayPal" checked>
-                                <label class="form-check-label" for="paypal">
-                                    PayPal or Credit Card
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="paymentMethod" id="stripe" value="Stripe">
-                                <label class="form-check-label" for="stripe">
-                                    Stripe
-                                </label>
-                            </div>
-                        </div>
-                        
-                        <button type="submit" class="btn btn-primary">Place Order</button>
-                    </form>
+    <h1 class="h2 fw-bold mb-1">Finalize Your Order</h1>
+    <p class="text-muted small">Please verify your shipping destination and select your preferred transaction method.</p>
+</div>
+
+<div class="row g-4">
+    <!-- Shipping & Payment Form -->
+    <div class="col-lg-8">
+        <form id="order-form">
+            {% csrf_token %}
+            
+            <!-- Shipping Information Card -->
+            <div class="luxe-card p-4 mb-4">
+                <h4 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                    <i class="fas fa-shipping-fast text-primary"></i> Shipping Destination
+                </h4>
+                
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label for="address" class="form-label">Street Address <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="address" name="address" placeholder="e.g. 742 Evergreen Terrace, Suite 10" required>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="city" class="form-label">City <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="city" name="city" placeholder="e.g. San Francisco" required>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label for="postalCode" class="form-label">Postal / ZIP Code <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="postalCode" name="postalCode" placeholder="e.g. 94107" required>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label for="country" class="form-label">Country <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="country" name="country" placeholder="e.g. United States" value="United States" required>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="phone" class="form-label">Contact Phone Number</label>
+                        <input type="tel" class="form-control" id="phone" name="phone" placeholder="e.g. +1 (555) 019-2834">
+                    </div>
                 </div>
             </div>
-        </div>
-        
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
-                    <h4>Order Summary</h4>
-                </div>
-                <div class="card-body">
-                    <div class="order-items mb-3">
-                        {% for item in cart_items %}
-                            <div class="d-flex mb-2">
-                                <div style="width: 50px; height: 50px; overflow: hidden; margin-right: 10px;">
-                                    <img src="{{ item.image }}" alt="{{ item.name }}" class="img-fluid">
-                                </div>
-                                <div>
-                                    <p class="mb-0">{{ item.name }}</p>
-                                    <small>{{ item.qty }} x ${{ item.price }}</small>
-                                </div>
+            
+            <!-- Payment Method Card -->
+            <div class="luxe-card p-4 mb-4">
+                <h4 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                    <i class="fas fa-credit-card text-primary"></i> Payment Method
+                </h4>
+                
+                <div class="d-flex flex-column gap-3">
+                    <label class="p-3 border rounded d-flex align-items-center justify-content-between" style="cursor: pointer; border-radius: 12px; background: #fafafa;">
+                        <div class="d-flex align-items-center gap-3">
+                            <input class="form-check-input mt-0" type="radio" name="paymentMethod" id="pay-card" value="Credit Card" checked>
+                            <div>
+                                <div class="fw-bold text-dark">Credit / Debit Card (Instant Test Sandbox)</div>
+                                <small class="text-muted">Simulate card payment instantly with 1-click confirmation</small>
                             </div>
-                        {% endfor %}
-                    </div>
+                        </div>
+                        <div class="fs-4 text-muted d-none d-sm-block">
+                            <i class="fab fa-cc-visa me-1"></i>
+                            <i class="fab fa-cc-mastercard"></i>
+                        </div>
+                    </label>
                     
-                    <hr>
-                    
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Items:</span>
-                        <span>${{ items_price }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Shipping:</span>
-                        <span>${{ shipping_price }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Tax:</span>
-                        <span>${{ tax_price }}</span>
-                    </div>
-                    <hr>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span><strong>Total:</strong></span>
-                        <span><strong>${{ total_price }}</strong></span>
-                    </div>
+                    <label class="p-3 border rounded d-flex align-items-center justify-content-between" style="cursor: pointer; border-radius: 12px; background: #fafafa;">
+                        <div class="d-flex align-items-center gap-3">
+                            <input class="form-check-input mt-0" type="radio" name="paymentMethod" id="pay-paypal" value="PayPal">
+                            <div>
+                                <div class="fw-bold text-dark">PayPal Standard</div>
+                                <small class="text-muted">Pay securely with your PayPal balance or connected bank</small>
+                            </div>
+                        </div>
+                        <div class="fs-4 text-primary d-none d-sm-block">
+                            <i class="fab fa-cc-paypal"></i>
+                        </div>
+                    </label>
                 </div>
+            </div>
+            
+            <button type="submit" id="btn-submit-order" class="btn-luxe btn-luxe-primary w-100 py-3 fs-5">
+                <i class="fas fa-shield-alt me-2"></i> Place Order & Continue &rarr;
+            </button>
+        </form>
+    </div>
+    
+    <!-- Order Breakdown Sidebar -->
+    <div class="col-lg-4">
+        <div class="luxe-card p-4 sticky-top" style="top: 100px;">
+            <h4 class="fw-bold pb-3 mb-3 border-bottom">Items in Order</h4>
+            
+            <div class="d-flex flex-column gap-3 mb-4" style="max-height: 280px; overflow-y: auto;">
+                {% for item in cart_items %}
+                    <div class="d-flex align-items-center gap-3">
+                        <div style="width: 50px; height: 50px; background: #f8fafc; border-radius: 8px; padding: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <img src="{{ item.image }}" alt="{{ item.name }}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                        </div>
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="fw-semibold text-truncate small">{{ item.name }}</div>
+                            <div class="text-muted small">{{ item.qty }} &times; ${{ item.price }}</div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <hr class="my-3">
+            
+            <div class="d-flex justify-content-between mb-2 small">
+                <span class="text-muted">Items Subtotal:</span>
+                <span class="fw-semibold text-dark">${{ items_price }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2 small">
+                <span class="text-muted">Shipping:</span>
+                <span class="fw-semibold {% if shipping_price == '0.00' %}text-success{% else %}text-dark{% endif %}">
+                    {% if shipping_price == '0.00' %}FREE{% else %}${{ shipping_price }}{% endif %}
+                </span>
+            </div>
+            <div class="d-flex justify-content-between mb-3 small">
+                <span class="text-muted">Sales Tax (15%):</span>
+                <span class="fw-semibold text-dark">${{ tax_price }}</span>
+            </div>
+            
+            <hr class="my-3">
+            
+            <div class="d-flex justify-content-between align-items-baseline mb-3">
+                <span class="h5 fw-bold mb-0">Total Due:</span>
+                <span class="h3 fw-bold text-dark mb-0">${{ total_price }}</span>
+            </div>
+            
+            <div class="text-center text-muted small mt-2">
+                <i class="fas fa-lock text-success me-1"></i> SSL 256-bit Encrypted Transaction
             </div>
         </div>
     </div>
@@ -103,46 +160,62 @@
 
 {% block scripts %}
 <script>
-    document.getElementById('order-form').addEventListener('submit', function(e) {
+    document.getElementById('order-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         
+        const submitBtn = document.getElementById('btn-submit-order');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Securing Order...';
+        
         const formData = new FormData(this);
-        const orderData = {
-            orderItems: JSON.parse(localStorage.getItem('cartItems') || '[]'),
+        const cartItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
+        
+        const orderPayload = {
+            orderItems: cartItems,
             shippingAddress: {
                 address: formData.get('address'),
                 city: formData.get('city'),
                 postalCode: formData.get('postalCode'),
-                country: formData.get('country')
+                country: formData.get('country'),
+                phone: formData.get('phone') || ''
             },
             paymentMethod: formData.get('paymentMethod'),
-            itemsPrice: {{ items_price }},
-            shippingPrice: {{ shipping_price }},
-            taxPrice: {{ tax_price }},
-            totalPrice: {{ total_price }}
+            itemsPrice: parseFloat('{{ items_price }}'),
+            shippingPrice: parseFloat('{{ shipping_price }}'),
+            taxPrice: parseFloat('{{ tax_price }}'),
+            totalPrice: parseFloat('{{ total_price }}')
         };
         
-        fetch('{% url "orders-add" %}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify(orderData)
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data._id) {
+        const csrftoken = getCookie('csrftoken');
+        
+        try {
+            const resp = await fetch('{% url "orders-add" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify(orderPayload)
+            });
+            
+            const data = await resp.json();
+            
+            const orderId = data.id || data._id;
+            if (orderId) {
                 localStorage.removeItem('cartItems');
-                window.location.href = `/orders/${data._id}`;
+                syncCartBadge();
+                window.location.href = `/orders/${orderId}/`;
             } else {
-                alert('Error creating order');
+                alert(data.detail || 'Could not process order. Please verify your details.');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-shield-alt me-2"></i> Place Order & Continue &rarr;';
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error creating order');
-        });
+        } catch (error) {
+            console.error('Order creation error:', error);
+            alert('An unexpected network error occurred. Please try again.');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-shield-alt me-2"></i> Place Order & Continue &rarr;';
+        }
     });
 </script>
 {% endblock %}

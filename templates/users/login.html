@@ -1,119 +1,78 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Login{% endblock %}
+{% block title %}Sign In | LuxeCommerce{% endblock %}
 
 {% block content %}
-<style>
-    .auth-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 80vh;
-        background-color: #f8f9fa;
-        padding: 20px;
-    }
-    .auth-card {
-        background: #fff;
-        padding: 40px 30px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        width: 100%;
-        max-width: 400px;
-        box-sizing: border-box;
-    }
-    .auth-card h1 {
-        margin-bottom: 30px;
-        font-weight: 700;
-        font-size: 2rem;
-        text-align: center;
-        color: #343a40;
-    }
-    .form-group label {
-        font-weight: 600;
-        color: #495057;
-    }
-    .form-group input {
-        height: 45px;
-        font-size: 1rem;
-        padding: 0 12px;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-        transition: border-color 0.3s ease;
-    }
-    .form-group input:focus {
-        border-color: #0d6efd;
-        outline: none;
-        box-shadow: 0 0 5px rgba(13, 110, 253, 0.5);
-    }
-    button.btn-primary {
-        background-color: #0d6efd;
-        border: none;
-        font-size: 1.1rem;
-        font-weight: 600;
-        padding: 12px 0;
-        border-radius: 6px;
-        transition: background-color 0.3s ease;
-    }
-    button.btn-primary:hover {
-        background-color: #0b5ed7;
-    }
-    .auth-redirect {
-        margin-top: 20px;
-        text-align: center;
-        font-size: 0.95rem;
-        color: #6c757d;
-    }
-    .auth-redirect a {
-        color: #0d6efd;
-        text-decoration: none;
-        font-weight: 600;
-    }
-    .auth-redirect a:hover {
-        text-decoration: underline;
-    }
-    small#password-empty-msg {
-        font-size: 0.85rem;
-        margin-top: 4px;
-        display: block;
-    }
-</style>
-<div class="auth-container">
-    <div class="auth-card">
-        <h1>Sign In</h1>
-        
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-        
-        <form method="POST" action="{% url 'login' %}">
-            {% csrf_token %}
-            <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" name="username" required autofocus placeholder="Enter your email">
+<div class="row justify-content-center py-4">
+    <div class="col-md-6 col-lg-5">
+        <div class="luxe-card p-4 p-md-5">
+            <div class="text-center mb-4">
+                <div class="d-inline-flex align-items-center justify-content-center mb-3" style="width: 54px; height: 54px; border-radius: 50%; background: var(--brand-indigo-light); color: var(--brand-indigo);">
+                    <i class="fas fa-lock-open fa-lg"></i>
+                </div>
+                <h2 class="h3 fw-bold mb-1">Welcome Back</h2>
+                <p class="text-muted small">Sign in to access your orders, saved addresses, and preferences.</p>
             </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required placeholder="Enter your password" oninput="checkPasswordEmpty(this)">
-                <small id="password-empty-msg" style="color: red; display: none;">Password cannot be empty</small>
+            
+            <!-- Quick Demo Credentials Callout -->
+            <div class="alert alert-light border small mb-4 text-center" style="border-radius: 10px;">
+                <div class="fw-bold text-dark mb-1"><i class="fas fa-key text-warning me-1"></i> Demo Admin Credentials:</div>
+                <div class="text-muted font-monospace">admin@example.com &bull; admin123</div>
             </div>
-            <button type="submit" class="btn btn-primary btn-lg w-100">Sign In</button>
-        </form>
-        <script>
-            function checkPasswordEmpty(input) {
-                const msg = document.getElementById('password-empty-msg');
-                if (input.value.trim() === '') {
-                    msg.style.display = 'inline';
-                } else {
-                    msg.style.display = 'none';
-                }
-            }
-        </script>
-        
-        <div class="auth-redirect">
-            New Customer? <a href="{% url 'register' %}{% if request.GET.redirect %}?redirect={{ request.GET.redirect }}{% endif %}">Register</a>
+            
+            <form method="POST" action="{% url 'login' %}">
+                {% csrf_token %}
+                
+                {% if redirect %}
+                    <input type="hidden" name="redirect" value="{{ redirect }}">
+                {% endif %}
+                
+                <div class="mb-3">
+                    <label for="username" class="form-label">Email Address</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="fas fa-envelope text-muted"></i></span>
+                        <input type="email" class="form-control border-start-0 ps-0" id="username" name="username" placeholder="name@example.com" required autofocus>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="password" class="form-label">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="fas fa-lock text-muted"></i></span>
+                        <input type="password" class="form-control border-start-0 ps-0" id="password" name="password" placeholder="Enter your password" required>
+                        <button class="btn btn-outline-secondary border-start-0" type="button" id="toggle-pwd" title="Toggle visibility">
+                            <i class="fas fa-eye text-muted"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn-luxe btn-luxe-primary w-100 py-3 mb-3">
+                    <i class="fas fa-sign-in-alt me-1"></i> Sign In to Account
+                </button>
+            </form>
+            
+            <div class="text-center pt-3 border-top">
+                <span class="text-muted small">Don't have an account yet?</span>
+                <a href="{% url 'register' %}{% if redirect %}?redirect={{ redirect }}{% endif %}" class="fw-bold text-primary small ms-1">
+                    Create Account
+                </a>
+            </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const toggleBtn = document.getElementById('toggle-pwd');
+    const pwdInput = document.getElementById('password');
+    if (toggleBtn && pwdInput) {
+        toggleBtn.addEventListener('click', () => {
+            const isPass = pwdInput.type === 'password';
+            pwdInput.type = isPass ? 'text' : 'password';
+            toggleBtn.innerHTML = `<i class="fas fa-${isPass ? 'eye-slash' : 'eye'} text-muted"></i>`;
+        });
+    }
+</script>
 {% endblock %}

@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} | LuxeCommerce Admin{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{% url 'admin-products' %}" class="btn btn-sm btn-outline-secondary mb-3" style="border-radius: 8px;">
+        <i class="fas fa-arrow-left me-1"></i> Back to Inventory
+    </a>
+    <h1 class="h2 fw-bold mb-1">{{ title }}</h1>
+    <p class="text-muted small">Fill in the specifications, inventory levels, and image asset for the product.</p>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="luxe-card p-4">
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label for="name" class="form-label">Product Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ product.name|default:'' }}" required placeholder="e.g. Sony WH-1000XM5 Wireless Headphones">
+                </div>
+                
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="price" class="form-label">Price (USD) <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" step="0.01" class="form-control" id="price" name="price" value="{{ product.price|default:'0.00' }}" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="countInStock" class="form-label">Stock Quantity <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="countInStock" name="countInStock" value="{{ product.countInStock|default:'10' }}" required>
+                    </div>
+                </div>
+                
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="brand" class="form-label">Brand Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="brand" name="brand" value="{{ product.brand|default:'' }}" required placeholder="e.g. Sony, Apple, Logitech">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="category" class="form-label">Category <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="category" name="category" value="{{ product.category|default:'Electronics' }}" required placeholder="e.g. Audio, Electronics, Gaming">
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="description" class="form-label">Product Description</label>
+                    <textarea class="form-control" id="description" name="description" rows="5" placeholder="Detailed technical specifications, features, and package contents...">{{ product.description|default:'' }}</textarea>
+                </div>
+                
+                <!-- Image Upload & URL -->
+                <div class="p-3 bg-light rounded mb-4" style="border-radius: 12px;">
+                    <label class="form-label fw-bold mb-2">Product Image Asset</label>
+                    
+                    {% if product.image %}
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <div style="width: 70px; height: 70px; background: #fff; border-radius: 8px; padding: 4px; display: flex; align-items: center; justify-content: center;">
+                                <img src="{{ product.image }}" alt="Current Image" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                            </div>
+                            <small class="text-muted">Current file: {{ product.image }}</small>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mb-2">
+                        <label for="image" class="form-label small text-muted">Upload Image File (JPG, PNG, WebP):</label>
+                        <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                    </div>
+                    
+                    <div class="text-center text-muted small my-2">&mdash; OR &mdash;</div>
+                    
+                    <div>
+                        <label for="image_url" class="form-label small text-muted">Image Static Path / External URL:</label>
+                        <input type="text" class="form-control" id="image_url" name="image_url" placeholder="/static/images/your_product.jpg or https://..." value="{% if product and not product.image.url %}{{ product.image }}{% endif %}">
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="{% url 'admin-products' %}" class="btn btn-outline-secondary px-4">Cancel</a>
+                    <button type="submit" class="btn-luxe btn-luxe-primary px-4">
+                        <i class="fas fa-save me-1"></i> Save Product
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

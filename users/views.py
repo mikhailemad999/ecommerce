@@ -8,11 +8,15 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth.hashers import make_password
 from rest_framework import status
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from orders.models import Order
 from orders.serializers import OrderSerializer
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required, user_passes_test
+
+def is_admin(user):
+    return user.is_authenticated and user.is_staff
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
@@ -27,85 +31,138 @@ class MyTokenObtainPairView(TokenObtainPairView):
 
     def post(self, request, *args, **kwargs):
         if request.content_type == 'application/json':
-            # Handle API JSON login
             return super().post(request, *args, **kwargs)
         else:
-            # Handle form login
-            username = request.POST.get('username')
-            password = request.POST.get('password')
+            # Handle standard form login
+            username = request.POST.get('username', '').strip()
+            password = request.POST.get('password', '')
+            redirect_url = request.POST.get('redirect') or request.GET.get('redirect', '/')
+            
             user = authenticate(request, username=username, password=password)
+            if user is None and '@' in username:
+                # If username was passed as email
+                user_obj = User.objects.filter(email=username).first()
+                if user_obj:
+                    user = authenticate(request, username=user_obj.username, password=password)
+                    
             if user is not None:
                 login(request, user)
-                redirect_url = request.GET.get('redirect', '/')
-                return redirect(redirect_url)
+                messages.success(request, f'Welcome back, {user.first_name or user.username}!')
+                return redirect(redirect_url if redirect_url else '/')
             else:
-                messages.error(request, 'Invalid email or password')
-                return render(request, 'users/login.html')
+                messages.error(request, 'Invalid email or password. Please try again.')
+                return render(request, 'users/login.html', {'redirect': redirect_url})
 
     def get(self, request):
-        return render(request, 'users/login.html')
+        if request.user.is_authenticated:
+            return redirect('/')
+        redirect_url = request.GET.get('redirect', '/')
+        return render(request, 'users/login.html', {'redirect': redirect_url})
+
 
 @api_view(['POST', 'GET'])
 def registerUser(request):
     if request.method == 'POST':
-        if request.content_type == 'application/json':
-            data = request.data
-        else:
-            data = request.POST
+        is_json = request.content_type == 'application/json'
+        data = request.data if is_json else request.POST
         
-        if data['password'] != data['confirmPassword']:
-            messages.error(request, 'Passwords do not match')
-            return render(request, 'users/register.html')
+        name = data.get('name', '').strip()
+        email = data.get('email', '').strip().lower()
+        password = data.get('password', '')
+        confirm_password = data.get('confirmPassword', '')
+        redirect_url = data.get('redirect') or request.GET.get('redirect', '/')
         
-        try:
-            user = User.objects.create(
-                first_name=data['name'],
-                username=data['email'],
-                email=data['email'],
-                password=make_password(data['password'])
-            )
+        if not name or not email or not password:
+            msg = 'Please fill in all required fields'
+            if is_json:
+                return Response({'detail': msg}, status=status.HTTP_400_BAD_REQUEST)
+            messages.error(request, msg)
+            return render(request, 'users/register.html', {'redirect': redirect_url})
             
-            redirect_url = data.get('redirect', '/')
-            return redirect(redirect_url)
+        if password != confirm_password:
+            msg = 'Passwords do not match'
+            if is_json:
+                return Response({'detail': msg}, status=status.HTTP_400_BAD_REQUEST)
+            messages.error(request, msg)
+            return render(request, 'users/register.html', {'redirect': redirect_url})
+            
+        if len(password) < 6:
+            msg = 'Password must be at least 6 characters'
+            if is_json:
+                return Response({'detail': msg}, status=status.HTTP_400_BAD_REQUEST)
+            messages.error(request, msg)
+            return render(request, 'users/register.html', {'redirect': redirect_url})
         
-# users/views.py (continued)
-        except:
-            messages.error(request, 'User with this email already exists')
-            return render(request, 'users/register.html')
+        if User.objects.filter(username=email).exists() or User.objects.filter(email=email).exists():
+            msg = 'A user with this email address already exists'
+            if is_json:
+                return Response({'detail': msg}, status=status.HTTP_400_BAD_REQUEST)
+            messages.error(request, msg)
+            return render(request, 'users/register.html', {'redirect': redirect_url})
+        
+        user = User.objects.create(
+            first_name=name,
+            username=email,
+            email=email,
+            password=make_password(password)
+        )
+        
+        # Log user in immediately
+        login(request, user)
+        messages.success(request, f'Account created successfully! Welcome to the store, {name}.')
+        
+        if is_json:
+            serializer = UserSerializerWithToken(user, many=False)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            
+        return redirect(redirect_url if redirect_url else '/')
     else:
-        return render(request, 'users/register.html')
+        if request.user.is_authenticated:
+            return redirect('/')
+        redirect_url = request.GET.get('redirect', '/')
+        return render(request, 'users/register.html', {'redirect': redirect_url})
 
-@api_view(['POST', 'GET'])
-@permission_classes([IsAuthenticated])
+
+@login_required(login_url='/users/login/')
 def updateUserProfile(request):
     user = request.user
     
     if request.method == 'POST':
-        data = request.data
+        name = request.POST.get('name', '').strip()
+        email = request.POST.get('email', '').strip().lower()
+        password = request.POST.get('password', '')
+        confirm_password = request.POST.get('confirmPassword', '')
         
-        if data['password'] != '' and data['password'] != data['confirmPassword']:
+        if password and password != confirm_password:
             messages.error(request, 'Passwords do not match')
-            return redirect('user-profile')
-        
-        user.first_name = data['name']
-        user.username = data['email']
-        user.email = data['email']
-        
-        if data['password'] != '':
-            user.password = make_password(data['password'])
-        
+            return redirect('users-profile')
+            
+        if email and email != user.email:
+            if User.objects.filter(email=email).exclude(id=user.id).exists():
+                messages.error(request, 'This email is already in use by another account')
+                return redirect('users-profile')
+            user.email = email
+            user.username = email
+            
+        if name:
+            user.first_name = name
+            
+        if password:
+            user.password = make_password(password)
+            
         user.save()
-        messages.success(request, 'Profile updated successfully')
-        return redirect('user-profile')
+        messages.success(request, 'Your profile has been updated successfully!')
+        return redirect('users-profile')
     else:
         serializer = UserSerializer(user, many=False)
-        orders = user.order_set.all()
+        orders = user.order_set.all().order_by('-createdAt')
         orders_serializer = OrderSerializer(orders, many=True)
         
         return render(request, 'users/profile.html', {
             'user': serializer.data,
             'orders': orders_serializer.data
         })
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -114,46 +171,77 @@ def getUserProfile(request):
     serializer = UserSerializer(user, many=False)
     return Response(serializer.data)
 
-@api_view(['GET'])
-@permission_classes([IsAdminUser])
+
+@user_passes_test(is_admin, login_url='/users/login/')
 def getUsers(request):
-    users = User.objects.all()
+    users = User.objects.all().order_by('id')
     serializer = UserSerializer(users, many=True)
     return render(request, 'users/user_list.html', {'users': serializer.data})
 
-@api_view(['GET'])
-@permission_classes([IsAdminUser])
+
+@user_passes_test(is_admin, login_url='/users/login/')
 def getUserById(request, pk):
-    user = User.objects.get(id=pk)
+    user = get_object_or_404(User, id=pk)
+    
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        email = request.POST.get('email', '').strip()
+        is_admin_flag = 'isAdmin' in request.POST
+        
+        user.first_name = name
+        user.email = email
+        user.username = email
+        user.is_staff = is_admin_flag
+        user.save()
+        messages.success(request, f'User {user.username} updated successfully')
+        return redirect('users')
+        
     serializer = UserSerializer(user, many=False)
     return render(request, 'users/user_edit.html', {'user': serializer.data})
 
-@api_view(['PUT'])
+
+@api_view(['PUT', 'POST'])
 @permission_classes([IsAdminUser])
 def updateUser(request, pk):
-    user = User.objects.get(id=pk)
+    user = get_object_or_404(User, id=pk)
+    data = request.data if request.data else request.POST
     
-    data = request.data
-    user.first_name = data['name']
-    user.username = data['email']
-    user.email = data['email']
-    user.is_staff = data.get('isAdmin', False)
-    
+    user.first_name = data.get('name', user.first_name)
+    user.username = data.get('email', user.username)
+    user.email = data.get('email', user.email)
+    user.is_staff = data.get('isAdmin', user.is_staff)
     user.save()
     
+    if request.content_type == 'application/json':
+        serializer = UserSerializer(user, many=False)
+        return Response(serializer.data)
+        
     messages.success(request, 'User updated successfully')
     return redirect('users')
 
-@api_view(['DELETE'])
+
+@api_view(['DELETE', 'POST'])
 @permission_classes([IsAdminUser])
 def deleteUser(request, pk):
-    userForDeletion = User.objects.get(id=pk)
-    userForDeletion.delete()
-    messages.success(request, 'User deleted successfully')
+    user_to_delete = get_object_or_404(User, id=pk)
+    username = user_to_delete.username
+    
+    if user_to_delete.id == request.user.id:
+        if request.content_type == 'application/json':
+            return Response({'detail': 'You cannot delete yourself'}, status=status.HTTP_400_BAD_REQUEST)
+        messages.error(request, 'You cannot delete your own admin account')
+        return redirect('users')
+        
+    user_to_delete.delete()
+    
+    if request.content_type == 'application/json':
+        return Response({'detail': 'User deleted'})
+        
+    messages.success(request, f'User {username} deleted successfully')
     return redirect('users')
 
-from django.contrib.auth import logout
 
 def logout_view(request):
     logout(request)
+    messages.info(request, 'You have been logged out.')
     return redirect('/')
