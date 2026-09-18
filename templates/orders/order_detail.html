@@ -6,13 +6,20 @@
 
 {% block content %}
 <div class="mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <a href="{% url 'myorders' %}" class="btn btn-sm btn-outline-secondary" style="border-radius: 8px;">
             <i class="fas fa-arrow-left me-1"></i> Back to My Orders
         </a>
-        <span class="badge bg-dark px-3 py-2 fs-6" style="border-radius: 20px;">
-            Order #{{ order.id }}
-        </span>
+        <div class="d-flex align-items-center gap-2">
+            {% if order.tracking %}
+                <a href="{% url 'order-tracking' %}?tracking_number={{ order.tracking.tracking_number }}" class="btn btn-sm btn-outline-primary" style="border-radius: 20px;">
+                    <i class="fas fa-satellite-dish me-1"></i> Public Tracking Portal
+                </a>
+            {% endif %}
+            <span class="badge bg-dark px-3 py-2 fs-6" style="border-radius: 20px;">
+                Order #{{ order.id }}
+            </span>
+        </div>
     </div>
     
     <!-- Order Tracking Visual Stepper -->
@@ -29,16 +36,16 @@
             <div class="step-label">Payment Confirmed</div>
         </div>
         
-        <div class="step-item {% if order.isDelivered %}completed{% elif order.isPaid %}active{% endif %}">
+        <div class="step-item {% if order.isDelivered or order.status == 'SHIPPED' or order.tracking.current_status == 'IN_TRANSIT' or order.tracking.current_status == 'DISPATCHED' or order.tracking.current_status == 'OUT_FOR_DELIVERY' %}completed{% elif order.isPaid %}active{% endif %}">
             <div class="step-circle">
-                {% if order.isDelivered %}<i class="fas fa-check"></i>{% else %}3{% endif %}
+                {% if order.isDelivered or order.status == 'SHIPPED' or order.tracking.current_status == 'IN_TRANSIT' or order.tracking.current_status == 'DISPATCHED' or order.tracking.current_status == 'OUT_FOR_DELIVERY' %}<i class="fas fa-check"></i>{% else %}3{% endif %}
             </div>
             <div class="step-label">Dispatch & Transit</div>
         </div>
         
-        <div class="step-item {% if order.isDelivered %}completed{% endif %}">
+        <div class="step-item {% if order.isDelivered or order.tracking.current_status == 'DELIVERED' %}completed{% endif %}">
             <div class="step-circle">
-                {% if order.isDelivered %}<i class="fas fa-check"></i>{% else %}4{% endif %}
+                {% if order.isDelivered or order.tracking.current_status == 'DELIVERED' %}<i class="fas fa-check"></i>{% else %}4{% endif %}
             </div>
             <div class="step-label">Delivered</div>
         </div>
@@ -46,13 +53,116 @@
 </div>
 
 <div class="row g-4">
-    <!-- Left Column: Shipping, Payment, and Items -->
+    <!-- Left Column: Shipping, Tracking, Payment, and Items -->
     <div class="col-lg-8">
+        <!-- Live Shipment Telemetry Card -->
+        {% if order.tracking %}
+        <div class="luxe-card p-4 mb-4 border-start border-4 border-primary">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <div>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 mb-1">
+                        <i class="fas fa-truck-fast me-1"></i> Active Courier Shipment
+                    </span>
+                    <h5 class="fw-bold mb-0 text-dark">
+                        {{ order.tracking.carrier_name }} &bull; <span class="font-monospace">{{ order.tracking.tracking_number }}</span>
+                    </h5>
+                </div>
+                <div class="text-end">
+                    <span class="badge {% if order.tracking.current_status == 'DELIVERED' %}bg-success{% elif order.tracking.current_status == 'OUT_FOR_DELIVERY' %}bg-info text-dark{% else %}bg-warning text-dark{% endif %} px-3 py-2" style="border-radius: 20px;">
+                        {{ order.tracking.status_display }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="row g-2 text-secondary small bg-light p-3 rounded-3 mb-3">
+                <div class="col-sm-6">
+                    <strong class="text-dark">Service Level:</strong> {{ order.shippingMethod.name|default:"Standard Delivery" }}
+                </div>
+                <div class="col-sm-6">
+                    <strong class="text-dark">Estimated Doorstep Delivery:</strong> {{ order.tracking.estimated_delivery|date:"M d, Y"|default:"2-4 Business Days" }}
+                </div>
+                <div class="col-sm-6">
+                    <strong class="text-dark">Dispatch Facility:</strong> {{ order.tracking.origin_facility }}
+                </div>
+                <div class="col-sm-6">
+                    <strong class="text-dark">Destination:</strong> {{ order.tracking.destination|default:"Client Address" }}
+                </div>
+            </div>
+
+            <!-- Checkpoints Timeline Accordion / List -->
+            <h6 class="fw-bold mb-2 text-dark d-flex align-items-center gap-1">
+                <i class="fas fa-list-check text-primary"></i> Scan Milestones
+            </h6>
+            <div class="checkpoint-timeline">
+                {% for cp in order.tracking.checkpoints %}
+                    <div class="d-flex align-items-start gap-3 py-2 border-bottom">
+                        <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center mt-1" style="width: 28px; height: 28px; font-size: 0.75rem; flex-shrink: 0;">
+                            <i class="fas fa-barcode"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between">
+                                <strong class="text-dark small">{{ cp.title }}</strong>
+                                <span class="text-muted" style="font-size: 0.75rem;">{{ cp.timestamp|date:"M d, g:i A" }}</span>
+                            </div>
+                            <div class="text-muted small">{{ cp.description }} &bull; <em>{{ cp.location }}</em></div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="text-muted small mb-0">Initial scan pending from departure hub.</p>
+                {% endfor %}
+            </div>
+
+            <!-- Staff Add Checkpoint Form -->
+            {% if user.is_staff %}
+                <div class="mt-3 pt-3 border-top">
+                    <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#addCheckpointCollapse">
+                        <i class="fas fa-plus me-1"></i> Log Dispatch Checkpoint (Staff)
+                    </button>
+                    <div class="collapse mt-3" id="addCheckpointCollapse">
+                        <form action="{% url 'order-add-checkpoint' order.id %}" method="POST" class="p-3 bg-light rounded-3 border">
+                            {% csrf_token %}
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-semibold">Status Stage</label>
+                                    <select name="status" class="form-select form-select-sm">
+                                        <option value="PROCESSING">Processing & Packaging</option>
+                                        <option value="DISPATCHED">Dispatched from Hub</option>
+                                        <option value="IN_TRANSIT" selected>In Transit with Carrier</option>
+                                        <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
+                                        <option value="DELIVERED">Delivered</option>
+                                        <option value="EXCEPTION">Delayed / Exception</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-semibold">Checkpoint Title</label>
+                                    <input type="text" name="title" class="form-control form-control-sm" placeholder="e.g. Scanned at Sorting Hub" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-semibold">Location</label>
+                                    <input type="text" name="location" class="form-control form-control-sm" placeholder="e.g. Dallas TX Depot" required>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small fw-semibold">Description / Notes</label>
+                                    <input type="text" name="description" class="form-control form-control-sm" placeholder="e.g. Package loaded on delivery vehicle for afternoon route.">
+                                </div>
+                                <div class="col-12 text-end">
+                                    <button type="submit" class="btn btn-sm btn-primary mt-1">
+                                        <i class="fas fa-save me-1"></i> Commit Checkpoint
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
         <!-- Shipping Details Card -->
         <div class="luxe-card p-4 mb-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h4 class="fw-bold mb-0 d-flex align-items-center gap-2">
-                    <i class="fas fa-shipping-fast text-primary"></i> Shipping Destination
+                    <i class="fas fa-location-dot text-primary"></i> Shipping Destination
                 </h4>
                 {% if order.isDelivered %}
                     <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1">
@@ -172,8 +282,6 @@
                         One-click simulation marks invoice paid
                     </div>
                 </div>
-                
-                <div id="paypal-button-container" class="mt-3"></div>
             {% endif %}
             
             <!-- Admin Delivery Toggle -->
@@ -188,12 +296,4 @@
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-{% if not order.isPaid %}
-<script>
-    // Optional PayPal SDK integration
-</script>
-{% endif %}
 {% endblock %}

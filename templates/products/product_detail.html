@@ -122,26 +122,59 @@
         </div>
         
         <!-- Specifications Table -->
-        <div class="table-responsive mb-4">
-            <table class="table table-sm table-borderless small mb-0">
-                <tbody>
-                    <tr>
-                        <td class="text-muted" style="width: 130px;">Brand</td>
-                        <td class="fw-semibold text-dark">{{ product.brand|default:"Authentic OEM" }}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted">Category</td>
-                        <td class="fw-semibold text-dark">{{ product.category|default:"Electronics" }}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted">Inventory ID</td>
-                        <td class="fw-semibold text-dark">#PRD-{{ product.id|stringformat:"05d" }}</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="luxe-card p-4 mb-4">
+            <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                <i class="fas fa-microchip text-primary"></i> Technical Specifications
+            </h5>
+            <div class="table-responsive">
+                <table class="table table-sm table-striped small mb-0">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted" style="width: 150px;">Brand</td>
+                            <td class="fw-bold text-dark">{{ product.brand|default:"OEM" }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Category</td>
+                            <td class="fw-bold text-dark">{{ product.category|default:"Electronics" }}</td>
+                        </tr>
+                        {% if product.sku %}
+                        <tr>
+                            <td class="text-muted">SKU / Model</td>
+                            <td class="fw-bold text-dark font-monospace">{{ product.sku }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if product.weight_kg %}
+                        <tr>
+                            <td class="text-muted">Unit Weight</td>
+                            <td class="fw-bold text-dark">{{ product.weight_kg }} kg</td>
+                        </tr>
+                        {% endif %}
+                        {% for spec in product.specifications %}
+                            <tr>
+                                <td class="text-muted">{{ spec.name }}</td>
+                                <td class="fw-semibold text-dark">{{ spec.value }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
-</div>
+
+        <!-- Shipping & Dispatch Guarantee Card -->
+        <div class="p-3 mb-4 rounded-3 border" style="background: #f8fafc;">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle bg-primary-subtle text-primary p-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                    <i class="fas fa-truck-fast fs-5"></i>
+                </div>
+                <div>
+                    <strong class="text-dark d-block small">Fast Tracked Delivery</strong>
+                    <span class="text-muted" style="font-size: 0.8rem;">
+                        Dispatched with FedEx or DHL within 24 hours. Full GPS tracking code provided upon checkout.
+                    </span>
+                </div>
+            </div>
+        </div>
+
 
 <!-- Customer Reviews Section -->
 <section id="reviews-section" class="mt-5 pt-5 border-top">

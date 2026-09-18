@@ -5,57 +5,181 @@
 
 {% block content %}
 <div class="mb-4">
-    <h1 class="h2 fw-bold mb-1">Account & Preferences</h1>
-    <p class="text-muted small">Update your personal contact details, security credentials, and review past orders.</p>
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h1 class="h2 fw-bold mb-1">Customer Profile & Portal</h1>
+            <p class="text-muted small mb-0">Manage your VIP loyalty status, saved delivery destinations, and tracking history.</p>
+        </div>
+        <div>
+            <span class="badge {% if profile.loyalty_tier == 'Platinum' %}bg-dark text-warning border border-warning{% elif profile.loyalty_tier == 'Gold' %}bg-warning text-dark{% elif profile.loyalty_tier == 'Silver' %}bg-secondary text-white{% else %}bg-light text-dark border{% endif %} px-3 py-2 fs-6 shadow-sm" style="border-radius: 20px;">
+                <i class="fas fa-crown me-1 text-warning"></i> {{ profile.get_loyalty_tier_display|default:"Bronze Member" }}
+            </span>
+        </div>
+    </div>
 </div>
 
 <div class="row g-4">
-    <!-- Left Column: Profile Settings -->
+    <!-- Left Column: Profile Settings & Address Book -->
     <div class="col-lg-5">
-        <div class="luxe-card p-4">
-            <h4 class="fw-bold mb-4 pb-2 border-bottom d-flex align-items-center gap-2">
-                <i class="fas fa-user-edit text-primary"></i> Personal Information
+        <!-- Personal Credentials Card -->
+        <div class="luxe-card p-4 mb-4">
+            <h4 class="fw-bold mb-3 pb-2 border-bottom d-flex align-items-center gap-2">
+                <i class="fas fa-user-gear text-primary"></i> Personal Credentials
             </h4>
             
             <form method="POST" action="{% url 'users-profile' %}">
                 {% csrf_token %}
                 
                 <div class="mb-3">
-                    <label for="name" class="form-label">Full Name</label>
-                    <input type="text" class="form-control" id="name" name="name" value="{{ user.first_name }}" required>
+                    <label for="name" class="form-label small fw-semibold">Full Name</label>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ user.name|default:user.first_name }}" required>
                 </div>
                 
                 <div class="mb-3">
-                    <label for="email" class="form-label">Email Address</label>
+                    <label for="email" class="form-label small fw-semibold">Email Address</label>
                     <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
                 </div>
+
+                <div class="mb-3">
+                    <label for="phone" class="form-label small fw-semibold">Contact Phone</label>
+                    <input type="tel" class="form-control" id="phone" name="phone" value="{{ profile.phone_number|default:'' }}" placeholder="+1 (555) 000-0000">
+                </div>
                 
-                <hr class="my-4">
-                <h6 class="fw-bold mb-3">Change Password <span class="text-muted fw-normal small">(Optional)</span></h6>
+                <hr class="my-3">
+                <h6 class="fw-bold mb-2 small text-uppercase text-muted">Update Password <span class="fw-normal">(Optional)</span></h6>
+                
+                <div class="mb-2">
+                    <label for="password" class="form-label small">New Password</label>
+                    <input type="password" class="form-control form-control-sm" id="password" name="password" placeholder="Leave blank to keep current">
+                </div>
                 
                 <div class="mb-3">
-                    <label for="password" class="form-label">New Password</label>
-                    <input type="password" class="form-control" id="password" name="password" placeholder="Leave blank to keep current">
+                    <label for="confirmPassword" class="form-label small">Confirm New Password</label>
+                    <input type="password" class="form-control form-control-sm" id="confirmPassword" name="confirmPassword" placeholder="Confirm new password">
                 </div>
                 
-                <div class="mb-4">
-                    <label for="confirmPassword" class="form-label">Confirm New Password</label>
-                    <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" placeholder="Confirm password">
-                </div>
-                
-                <button type="submit" class="btn-luxe btn-luxe-primary w-100 py-3">
-                    <i class="fas fa-save me-1"></i> Save Profile Changes
+                <button type="submit" class="btn-luxe btn-luxe-primary w-100 py-2">
+                    <i class="fas fa-save me-1"></i> Update Credentials
                 </button>
             </form>
         </div>
+
+        <!-- Address Book Card -->
+        <div class="luxe-card p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <h4 class="fw-bold mb-0 d-flex align-items-center gap-2">
+                    <i class="fas fa-address-book text-primary"></i> Saved Addresses
+                </h4>
+                <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#newAddressForm">
+                    <i class="fas fa-plus me-1"></i> Add New
+                </button>
+            </div>
+
+            <!-- Collapse Add Address Form -->
+            <div class="collapse mb-3" id="newAddressForm">
+                <form action="{% url 'user-address-add' %}" method="POST" class="p-3 bg-light rounded-3 border mb-3">
+                    {% csrf_token %}
+                    <h6 class="fw-bold mb-2">New Shipping Destination</h6>
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">Address Label</label>
+                        <input type="text" name="title" class="form-control form-control-sm" placeholder="e.g. Home, Office, Studio" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">Recipient Name</label>
+                        <input type="text" name="full_name" class="form-control form-control-sm" value="{{ user.first_name }}" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">Phone</label>
+                        <input type="tel" name="phone" class="form-control form-control-sm" placeholder="+1 (555) 000-0000" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">Street Address</label>
+                        <input type="text" name="street_address" class="form-control form-control-sm" placeholder="e.g. 123 Main St" required>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">City</label>
+                            <input type="text" name="city" class="form-control form-control-sm" placeholder="City" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Postal Code</label>
+                            <input type="text" name="postal_code" class="form-control form-control-sm" placeholder="ZIP Code" required>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">Country</label>
+                        <input type="text" name="country" class="form-control form-control-sm" value="United States" required>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="is_default" id="addr_default">
+                        <label class="form-check-label small" for="addr_default">Set as default shipping address</label>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary w-100">
+                        <i class="fas fa-check me-1"></i> Save Address
+                    </button>
+                </form>
+            </div>
+
+            <!-- Existing Addresses List -->
+            <div class="d-flex flex-column gap-3">
+                {% for addr in addresses %}
+                    <div class="p-3 rounded-3 border position-relative {% if addr.is_default %}border-primary bg-primary-subtle bg-opacity-10{% else %}bg-white{% endif %}">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <div>
+                                <strong class="text-dark">{{ addr.title }}</strong>
+                                {% if addr.is_default %}
+                                    <span class="badge bg-primary text-white ms-1" style="font-size: 0.68rem;">Default</span>
+                                {% endif %}
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-light py-0 px-2" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end small shadow-sm">
+                                    {% if not addr.is_default %}
+                                        <li>
+                                            <form action="{% url 'user-address-default' addr.id %}" method="POST">
+                                                {% csrf_token %}
+                                                <button type="submit" class="dropdown-item">
+                                                    <i class="fas fa-check me-1 text-success"></i> Set as Default
+                                                </button>
+                                            </form>
+                                        </li>
+                                    {% endif %}
+                                    <li>
+                                        <form action="{% url 'user-address-delete' addr.id %}" method="POST" onsubmit="return confirm('Remove this address?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="dropdown-item text-danger">
+                                                <i class="fas fa-trash me-1"></i> Delete
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="small text-secondary mb-1">
+                            <strong>{{ addr.full_name }}</strong> &bull; {{ addr.phone }}
+                        </div>
+                        <div class="small text-muted">
+                            {{ addr.street_address }}, {{ addr.city }}, {{ addr.postal_code }}, {{ addr.country }}
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="text-center py-3 text-muted small">
+                        <i class="fas fa-map-pin fs-4 mb-2 d-block text-secondary"></i>
+                        No saved addresses yet. Add your default address for rapid 1-click checkout.
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
     </div>
     
-    <!-- Right Column: My Orders Quick History -->
+    <!-- Right Column: My Orders & Active Tracking -->
     <div class="col-lg-7">
         <div class="luxe-card p-4">
             <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
                 <h4 class="fw-bold mb-0 d-flex align-items-center gap-2">
-                    <i class="fas fa-box-open text-primary"></i> Recent Purchases
+                    <i class="fas fa-box-open text-primary"></i> Order History & Tracking
                 </h4>
                 <a href="{% url 'myorders' %}" class="small text-primary fw-semibold">View All &rarr;</a>
             </div>
@@ -68,16 +192,26 @@
                                 <th>ORDER</th>
                                 <th>DATE</th>
                                 <th>TOTAL</th>
-                                <th>STATUS</th>
+                                <th>TRACKING</th>
+                                <th>PAYMENT</th>
                                 <th class="text-end">ACTION</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for order in orders|slice:":6" %}
+                            {% for order in orders|slice:":8" %}
                                 <tr>
                                     <td class="fw-bold text-dark">#{{ order.id }}</td>
                                     <td class="text-muted">{{ order.createdAt|slice:":10" }}</td>
                                     <td class="fw-bold text-dark">${{ order.totalPrice }}</td>
+                                    <td>
+                                        {% if order.tracking %}
+                                            <a href="{% url 'order-tracking' %}?tracking_number={{ order.tracking.tracking_number }}" class="badge bg-light text-primary border text-decoration-none" title="Track Live">
+                                                <i class="fas fa-satellite-dish me-1"></i> {{ order.tracking.status_display }}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted small">Processing</span>
+                                        {% endif %}
+                                    </td>
                                     <td>
                                         {% if order.isPaid %}
                                             <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
@@ -91,7 +225,7 @@
                                     </td>
                                     <td class="text-end">
                                         <a href="{% url 'user-order' order.id %}" class="btn btn-sm btn-outline-dark px-2 py-1" style="border-radius: 6px;">
-                                            Details
+                                            Invoice
                                         </a>
                                     </td>
                                 </tr>
@@ -101,8 +235,12 @@
                 </div>
             {% else %}
                 <div class="text-center py-5 text-muted">
-                    <i class="fas fa-shopping-bag fa-3x mb-3 opacity-50"></i>
-                    <p class="mb-0">No purchase records found.</p>
+                    <i class="fas fa-shopping-bag fs-1 mb-3 text-secondary"></i>
+                    <h5 class="fw-bold text-dark">No Orders Yet</h5>
+                    <p class="small mb-3">You haven't placed any orders yet. Discover our latest collection today.</p>
+                    <a href="{% url 'products' %}" class="btn-luxe btn-luxe-primary">
+                        Browse Catalog
+                    </a>
                 </div>
             {% endif %}
         </div>

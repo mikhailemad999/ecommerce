@@ -3,6 +3,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from django.contrib.auth.models import User
+from .models import Profile, CustomerAddress
 from .serializers import UserSerializer, UserSerializerWithToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -126,10 +127,12 @@ def registerUser(request):
 @login_required(login_url='/users/login/')
 def updateUserProfile(request):
     user = request.user
+    profile, _ = Profile.objects.get_or_create(user=user)
     
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
         email = request.POST.get('email', '').strip().lower()
+        phone = request.POST.get('phone', '').strip()
         password = request.POST.get('password', '')
         confirm_password = request.POST.get('confirmPassword', '')
         
@@ -147,6 +150,10 @@ def updateUserProfile(request):
         if name:
             user.first_name = name
             
+        if phone is not None:
+            profile.phone_number = phone
+            profile.save()
+            
         if password:
             user.password = make_password(password)
             
@@ -157,11 +164,66 @@ def updateUserProfile(request):
         serializer = UserSerializer(user, many=False)
         orders = user.order_set.all().order_by('-createdAt')
         orders_serializer = OrderSerializer(orders, many=True)
+        addresses = user.addresses.all().order_by('-is_default', '-created_at')
         
         return render(request, 'users/profile.html', {
             'user': serializer.data,
+            'profile': profile,
+            'addresses': addresses,
             'orders': orders_serializer.data
         })
+
+
+@login_required(login_url='/users/login/')
+def addCustomerAddress(request):
+    if request.method == 'POST':
+        title = request.POST.get('title', 'Home').strip()
+        full_name = request.POST.get('full_name', '').strip() or request.user.first_name or request.user.username
+        phone = request.POST.get('phone', '').strip()
+        street_address = request.POST.get('street_address', '').strip()
+        city = request.POST.get('city', '').strip()
+        state_province = request.POST.get('state_province', '').strip()
+        postal_code = request.POST.get('postal_code', '').strip()
+        country = request.POST.get('country', 'United States').strip()
+        is_default = 'is_default' in request.POST
+        
+        if not street_address or not city:
+            messages.error(request, 'Street address and city are required.')
+            return redirect('users-profile')
+            
+        CustomerAddress.objects.create(
+            user=request.user,
+            title=title,
+            full_name=full_name,
+            phone=phone,
+            street_address=street_address,
+            city=city,
+            state_province=state_province,
+            postal_code=postal_code,
+            country=country,
+            is_default=is_default
+        )
+        messages.success(request, 'Address added to your address book successfully!')
+    return redirect('users-profile')
+
+
+@login_required(login_url='/users/login/')
+def deleteCustomerAddress(request, pk):
+    address = get_object_or_404(CustomerAddress, id=pk, user=request.user)
+    address.delete()
+    messages.success(request, 'Address removed successfully.')
+    return redirect('users-profile')
+
+
+@login_required(login_url='/users/login/')
+def setDefaultCustomerAddress(request, pk):
+    address = get_object_or_404(CustomerAddress, id=pk, user=request.user)
+    CustomerAddress.objects.filter(user=request.user).update(is_default=False)
+    address.is_default = True
+    address.save()
+    messages.success(request, f'"{address.title}" marked as your default shipping destination.')
+    return redirect('users-profile')
+
 
 
 @api_view(['GET'])

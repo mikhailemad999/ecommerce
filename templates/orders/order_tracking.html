@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Real-Time Shipment Tracking | LuxeCommerce{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <!-- Hero Tracking Header -->
+        <div class="text-center py-4 mb-4" style="background: radial-gradient(circle at center, rgba(99, 102, 241, 0.12) 0%, transparent 70%); border-radius: 20px;">
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 mb-2" style="border-radius: 20px; font-size: 0.85rem;">
+                <i class="fas fa-radar me-1"></i> Global Satellite Telemetry & Dispatch
+            </span>
+            <h1 class="h2 fw-bold text-dark mb-2">Track Your LuxeCommerce Shipment</h1>
+            <p class="text-muted small mx-auto mb-4" style="max-width: 580px;">
+                Enter your unique LuxeCommerce Tracking ID (e.g. <code>LX-2609-84291-US</code>) or Order Number to receive live carrier telemetry and estimated doorstep arrival.
+            </p>
+
+            <!-- Search Form -->
+            <form method="GET" action="{% url 'order-tracking' %}" class="d-flex justify-content-center">
+                <div class="input-group shadow-sm" style="max-width: 520px; border-radius: 30px; overflow: hidden; border: 2px solid #6366f1;">
+                    <span class="input-group-text bg-white border-0 ps-4 text-primary">
+                        <i class="fas fa-barcode fs-5"></i>
+                    </span>
+                    <input type="text" name="tracking_number" class="form-control border-0 py-3 ps-2 shadow-none" placeholder="Enter Tracking Code or Order ID..." value="{{ query }}" required>
+                    <button class="btn btn-primary px-4 fw-semibold" type="submit">
+                        <i class="fas fa-search me-1"></i> Track Parcel
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        {% if not_found %}
+            <div class="alert alert-warning border-0 shadow-sm p-4 text-center mb-4" style="border-radius: 16px; background: #fffbeb;">
+                <i class="fas fa-triangle-exclamation text-warning fs-2 mb-2 d-block"></i>
+                <h5 class="fw-bold text-dark">No Shipment Found For "{{ query }}"</h5>
+                <p class="text-muted small mb-3">
+                    We could not locate an active dispatch record matching this code. Please verify the characters from your order confirmation email or invoice.
+                </p>
+                <div class="d-flex justify-content-center gap-2 flex-wrap">
+                    <a href="{% url 'myorders' %}" class="btn btn-sm btn-outline-dark" style="border-radius: 8px;">
+                        <i class="fas fa-box-open me-1"></i> Check My Orders
+                    </a>
+                    <a href="{% url 'order-tracking' %}" class="btn btn-sm btn-primary" style="border-radius: 8px;">
+                        Try Another Search
+                    </a>
+                </div>
+            </div>
+        {% elif tracking %}
+            <!-- Active Tracking Found -->
+            <div class="luxe-card p-4 mb-4">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center pb-3 border-bottom mb-4 gap-3">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <h3 class="fw-bold mb-0 text-dark">Shipment {{ tracking.tracking_number }}</h3>
+                            <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="navigator.clipboard.writeText('{{ tracking.tracking_number }}'); alert('Tracking code copied to clipboard!');" title="Copy tracking code" style="border-radius: 6px;">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <span class="badge bg-primary px-3 py-1" style="border-radius: 20px;">
+                                {{ tracking.carrier_name }}
+                            </span>
+                        </div>
+                        <p class="text-muted small mb-0 mt-1">
+                            Associated with <strong>Order #{{ tracking.order.id }}</strong> &bull; Placed on {{ tracking.order.createdAt|date:"M d, Y" }}
+                        </p>
+                    </div>
+
+                    <div class="text-md-end">
+                        <span class="text-muted small d-block">Current Status</span>
+                        <span class="badge {% if tracking.current_status == 'DELIVERED' %}bg-success{% elif tracking.current_status == 'OUT_FOR_DELIVERY' %}bg-info text-dark{% else %}bg-warning text-dark{% endif %} px-3 py-2 fs-6" style="border-radius: 20px;">
+                            <i class="fas fa-circle-dot me-1"></i> {{ tracking.get_current_status_display }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Visual Stepper -->
+                <div class="order-stepper mb-4">
+                    <div class="step-item {% if tracking.current_status != 'CANCELLED' %}completed{% endif %}">
+                        <div class="step-circle"><i class="fas fa-check"></i></div>
+                        <div class="step-label">Order Confirmed</div>
+                    </div>
+                    
+                    <div class="step-item {% if tracking.current_status == 'PROCESSING' or tracking.current_status == 'DISPATCHED' or tracking.current_status == 'IN_TRANSIT' or tracking.current_status == 'OUT_FOR_DELIVERY' or tracking.current_status == 'DELIVERED' %}completed{% else %}active{% endif %}">
+                        <div class="step-circle">
+                            {% if tracking.current_status == 'ORDER_PLACED' %}2{% else %}<i class="fas fa-check"></i>{% endif %}
+                        </div>
+                        <div class="step-label">Packed & Verified</div>
+                    </div>
+                    
+                    <div class="step-item {% if tracking.current_status == 'DISPATCHED' or tracking.current_status == 'IN_TRANSIT' or tracking.current_status == 'OUT_FOR_DELIVERY' or tracking.current_status == 'DELIVERED' %}completed{% elif tracking.current_status == 'PROCESSING' %}active{% endif %}">
+                        <div class="step-circle">
+                            {% if tracking.current_status == 'DISPATCHED' or tracking.current_status == 'IN_TRANSIT' or tracking.current_status == 'OUT_FOR_DELIVERY' or tracking.current_status == 'DELIVERED' %}<i class="fas fa-check"></i>{% else %}3{% endif %}
+                        </div>
+                        <div class="step-label">Carrier In Transit</div>
+                    </div>
+
+                    <div class="step-item {% if tracking.current_status == 'OUT_FOR_DELIVERY' or tracking.current_status == 'DELIVERED' %}completed{% elif tracking.current_status == 'IN_TRANSIT' %}active{% endif %}">
+                        <div class="step-circle">
+                            {% if tracking.current_status == 'OUT_FOR_DELIVERY' or tracking.current_status == 'DELIVERED' %}<i class="fas fa-check"></i>{% else %}4{% endif %}
+                        </div>
+                        <div class="step-label">Out for Delivery</div>
+                    </div>
+                    
+                    <div class="step-item {% if tracking.current_status == 'DELIVERED' %}completed{% endif %}">
+                        <div class="step-circle">
+                            {% if tracking.current_status == 'DELIVERED' %}<i class="fas fa-check"></i>{% else %}5{% endif %}
+                        </div>
+                        <div class="step-label">Delivered</div>
+                    </div>
+                </div>
+
+                <!-- Shipment Key Metrics Grid -->
+                <div class="row g-3 p-3 mb-4 rounded-3" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                    <div class="col-sm-6 col-md-3">
+                        <small class="text-muted d-block fw-semibold text-uppercase" style="font-size: 0.72rem;">Estimated Delivery</small>
+                        <strong class="text-dark fs-6">{{ tracking.estimated_delivery|date:"l, M d, Y" }}</strong>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <small class="text-muted d-block fw-semibold text-uppercase" style="font-size: 0.72rem;">Origin Facility</small>
+                        <span class="text-secondary small">{{ tracking.origin_facility }}</span>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <small class="text-muted d-block fw-semibold text-uppercase" style="font-size: 0.72rem;">Destination</small>
+                        <span class="text-secondary small">{{ tracking.destination|default:"Verified Customer Address" }}</span>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <small class="text-muted d-block fw-semibold text-uppercase" style="font-size: 0.72rem;">Security Verification</small>
+                        <span class="text-secondary small">
+                            {% if tracking.signature_required %}
+                                <i class="fas fa-signature text-warning me-1"></i> Direct Signature Required
+                            {% else %}
+                                <i class="fas fa-house-chimney-user text-success me-1"></i> Safe Front-Door Dropoff
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Chronological Checkpoint Timeline -->
+                <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                    <i class="fas fa-route text-primary"></i> Scan History & Travel Events
+                </h5>
+
+                <div class="checkpoint-timeline">
+                    {% for cp in tracking.checkpoints.all %}
+                        <div class="checkpoint-item mb-3 p-3 rounded-3" style="background: #ffffff; border-left: 4px solid {% if forloop.first %}#6366f1{% else %}#cbd5e1{% endif %}; box-shadow: 0 2px 6px rgba(0,0,0,0.03); border-top: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9;">
+                            <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                                <div>
+                                    <h6 class="fw-bold mb-1 text-dark">
+                                        {% if forloop.first %}<span class="badge bg-primary-subtle text-primary me-1">Latest Event</span>{% endif %}
+                                        {{ cp.title }}
+                                    </h6>
+                                    <p class="text-muted small mb-1">{{ cp.description }}</p>
+                                    <span class="small text-secondary">
+                                        <i class="fas fa-location-dot text-danger me-1"></i> {{ cp.location }}
+                                    </span>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-light text-dark border">
+                                        <i class="far fa-clock me-1 text-muted"></i> {{ cp.timestamp|date:"M d, Y &bull; g:i A" }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted small">Awaiting initial hub barcode scan.</p>
+                    {% endfor %}
+                </div>
+
+                <!-- Action Footnote -->
+                <div class="d-flex justify-content-between align-items-center pt-3 mt-4 border-top">
+                    <a href="{% url 'products' %}" class="btn btn-sm btn-outline-secondary" style="border-radius: 8px;">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Store
+                    </a>
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'user-order' tracking.order.id %}" class="btn btn-sm btn-primary" style="border-radius: 8px;">
+                            <i class="fas fa-receipt me-1"></i> View Full Invoice
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        {% else %}
+            <!-- Default Info Cards -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-4">
+                    <div class="luxe-card p-4 h-100 text-center">
+                        <div class="rounded-circle bg-primary-subtle text-primary mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+                            <i class="fas fa-shield-halved fs-4"></i>
+                        </div>
+                        <h5 class="fw-bold mb-2">Tamper-Proof Packaging</h5>
+                        <p class="text-muted small mb-0">Every consignment is sealed with anti-tamper holographic barcodes verified upon delivery.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="luxe-card p-4 h-100 text-center">
+                        <div class="rounded-circle bg-success-subtle text-success mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+                            <i class="fas fa-plane-departure fs-4"></i>
+                        </div>
+                        <h5 class="fw-bold mb-2">Express Air Transit</h5>
+                        <p class="text-muted small mb-0">Partnered with FedEx and DHL for next-day air routes across domestic and worldwide networks.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="luxe-card p-4 h-100 text-center">
+                        <div class="rounded-circle bg-warning-subtle text-warning mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+                            <i class="fas fa-bell fs-4"></i>
+                        </div>
+                        <h5 class="fw-bold mb-2">Proactive Status Alerts</h5>
+                        <p class="text-muted small mb-0">Receive instant SMS and email notifications at each logistics transfer checkpoint.</p>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

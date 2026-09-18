@@ -6,7 +6,9 @@ urlpatterns = [
     path('', views.getAllOrders, name='orders'),
     path('myorders/', views.getMyOrders, name='myorders'),
     path('checkout/', views.checkout, name='checkout'),
+    path('track/', views.trackOrderPublic, name='order-tracking'),
     path('<str:pk>/', views.getOrderById, name='user-order'),
     path('<str:pk>/test-pay/', views.testCardPayment, name='order-test-pay'),
     path('<str:pk>/deliver/', views.updateOrderToDelivered, name='order-deliver'),
+    path('<str:pk>/checkpoint/', views.adminAddCheckpoint, name='order-add-checkpoint'),
 ]

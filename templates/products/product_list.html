@@ -1,23 +1,26 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Explore Catalog | LuxeCommerce{% endblock %}
+{% block title %}Explore Curated Electronics & Hardware | LuxeCommerce{% endblock %}
 
 {% block content %}
 <!-- Hero Section (Shown on clean catalog view) -->
-{% if not keyword and not selected_category %}
+{% if not keyword and not selected_category and not selected_brand and not min_price and not max_price and not selected_rating and not in_stock and not on_sale %}
 <section class="luxe-hero mb-4">
     <div class="row align-items-center">
         <div class="col-lg-7">
-            <span class="luxe-hero-tag"><i class="fas fa-sparkles me-1 text-warning"></i> Fall / Winter 2026 Collection</span>
-            <h1 class="luxe-hero-title">Next-Generation Tech Crafted for Modern Life.</h1>
-            <p class="luxe-hero-subtitle">Discover precision-engineered audio, computing, and gaming hardware backed by official guarantees and white-glove support.</p>
+            <span class="luxe-hero-tag"><i class="fas fa-sparkles me-1 text-warning"></i> Flagship 2026 Collection</span>
+            <h1 class="luxe-hero-title">Engineering Excellence. Mastercrafted Hardware.</h1>
+            <p class="luxe-hero-subtitle">Explore precision-engineered laptops, cinema cameras, audiophile headphones, and next-gen consoles with guaranteed doorstep dispatch and verified tracking.</p>
             <div class="d-flex gap-3 flex-wrap">
                 <a href="#catalog-grid" class="btn-luxe btn-luxe-primary">
-                    <i class="fas fa-arrow-down"></i> Browse Collection
+                    <i class="fas fa-arrow-down"></i> Browse Products
                 </a>
-                <a href="?sort=rating#catalog-grid" class="btn-luxe btn-luxe-secondary">
-                    <i class="fas fa-star text-warning"></i> Top Rated
+                <a href="?on_sale=true#catalog-grid" class="btn-luxe btn-luxe-secondary">
+                    <i class="fas fa-tags text-warning"></i> Seasonal Deals
+                </a>
+                <a href="{% url 'order-tracking' %}" class="btn-luxe btn-luxe-secondary">
+                    <i class="fas fa-satellite-dish text-primary"></i> Track Shipment
                 </a>
             </div>
         </div>
@@ -30,196 +33,398 @@
 </section>
 {% endif %}
 
-<!-- Catalog Controls Bar -->
-<div id="catalog-grid" class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pt-2">
-    <div>
-        <h2 class="h3 fw-bold mb-1">
-            {% if keyword %}
-                Search Results for "<span class="text-primary">{{ keyword }}</span>"
-            {% elif selected_category %}
-                {{ selected_category }}
-            {% else %}
-                Curated Electronics
-            {% endif %}
-        </h2>
-        <p class="text-muted small mb-0">Showing {{ total_count }} products available for instant dispatch</p>
-    </div>
-    
-    <!-- Sort Dropdown -->
-    <div class="d-flex align-items-center gap-2">
-        <label for="sort-select" class="text-muted small fw-semibold text-nowrap">Sort by:</label>
-        <select id="sort-select" class="form-select form-select-sm" style="width: 190px; border-radius: 8px;" onchange="applySort(this.value)">
-            <option value="newest" {% if sort == 'newest' or not sort %}selected{% endif %}>Latest Arrivals</option>
-            <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Price: Low to High</option>
-            <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Price: High to Low</option>
-            <option value="rating" {% if sort == 'rating' %}selected{% endif %}>Highest Rated</option>
-        </select>
-    </div>
-</div>
+<div id="catalog-grid" class="row g-4">
+    <!-- Sidebar Filters (Desktop & Offcanvas for Mobile) -->
+    <div class="col-lg-3">
+        <!-- Mobile Trigger Button -->
+        <button class="btn btn-outline-dark w-100 mb-3 d-lg-none py-2 d-flex align-items-center justify-content-center gap-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#filterDrawer">
+            <i class="fas fa-sliders"></i> Filter Catalog {% if has_active_filters %}<span class="badge bg-primary rounded-pill">Active</span>{% endif %}
+        </button>
 
-<!-- Category Chips -->
-<div class="filter-chip-bar">
-    <a href="{% url 'products' %}{% if keyword %}?keyword={{ keyword }}{% endif %}" class="filter-chip {% if not selected_category %}active{% endif %}">
-        All Categories
-    </a>
-    {% for cat in categories %}
-        <a href="?category={{ cat }}{% if keyword %}&keyword={{ keyword }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" class="filter-chip {% if selected_category == cat %}active{% endif %}">
-            {{ cat }}
-        </a>
-    {% endfor %}
-    
-    {% if keyword or selected_category %}
-        <a href="{% url 'products' %}" class="btn btn-sm btn-outline-danger ms-auto d-inline-flex align-items-center gap-1" style="border-radius: 20px;">
-            <i class="fas fa-times"></i> Clear Filters
-        </a>
-    {% endif %}
-</div>
+        <!-- Filter Container (Desktop inline, Mobile offcanvas) -->
+        <div class="offcanvas-lg offcanvas-start" tabindex="-1" id="filterDrawer">
+            <div class="offcanvas-header d-lg-none border-bottom">
+                <h5 class="offcanvas-title fw-bold">Refine Catalog</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#filterDrawer"></button>
+            </div>
 
-<!-- Products Grid -->
-<div class="row g-4">
-    {% for product in products %}
-        <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6">
-            <div class="product-card">
-                <!-- Image Box -->
-                <div class="product-image-wrap">
-                    <a href="{% url 'product' product.id %}" class="d-block w-100 h-100 text-center">
-                        <img src="{{ product.image }}" alt="{{ product.name }}" loading="lazy">
-                    </a>
-                    
-                    <!-- Stock status overlay -->
-                    <div class="position-absolute top-0 start-0 m-3">
-                        {% if product.countInStock > 3 %}
-                            <span class="badge-stock badge-in-stock"><i class="fas fa-check-circle"></i> In Stock</span>
-                        {% elif product.countInStock > 0 %}
-                            <span class="badge-stock badge-low-stock"><i class="fas fa-hourglass-half"></i> Only {{ product.countInStock }} left</span>
-                        {% else %}
-                            <span class="badge-stock badge-out-of-stock"><i class="fas fa-times-circle"></i> Sold Out</span>
+            <div class="offcanvas-body p-0">
+                <div class="luxe-card p-4 w-100 sticky-top" style="top: 90px; border-radius: 16px;">
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                        <h5 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+                            <i class="fas fa-filter text-primary"></i> Filters
+                        </h5>
+                        {% if has_active_filters %}
+                            <a href="{% url 'products' %}" class="small text-danger fw-semibold text-decoration-none">
+                                <i class="fas fa-rotate-left me-1"></i> Reset All
+                            </a>
                         {% endif %}
                     </div>
+
+                    <form method="GET" action="{% url 'products' %}#catalog-grid" id="catalog-filter-form">
+                        {% if keyword %}
+                            <input type="hidden" name="keyword" value="{{ keyword }}">
+                        {% endif %}
+                        {% if sort %}
+                            <input type="hidden" name="sort" value="{{ sort }}">
+                        {% endif %}
+
+                        <!-- Category Filter -->
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-uppercase text-secondary mb-2" style="font-size: 0.75rem; letter-spacing: 0.05em;">
+                                Category
+                            </label>
+                            <div class="d-flex flex-column gap-1">
+                                <a href="{% url 'products' %}{% if keyword %}?keyword={{ keyword }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}#catalog-grid" 
+                                   class="d-flex justify-content-between align-items-center text-decoration-none py-1 px-2 rounded-2 small {% if not selected_category %}fw-bold text-primary bg-primary-subtle{% else %}text-secondary hover-bg-light{% endif %}">
+                                    <span>All Departments</span>
+                                </a>
+                                {% for cat in categories %}
+                                    <a href="?category={{ cat.name }}{% if keyword %}&keyword={{ keyword }}{% endif %}{% if selected_brand %}&brand={{ selected_brand }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}{% if in_stock %}&in_stock=true{% endif %}{% if on_sale %}&on_sale=true{% endif %}{% if sort %}&sort={{ sort }}{% endif %}#catalog-grid" 
+                                       class="d-flex justify-content-between align-items-center text-decoration-none py-1 px-2 rounded-2 small {% if selected_category == cat.name %}fw-bold text-primary bg-primary-subtle{% else %}text-secondary hover-bg-light{% endif %}">
+                                        <span><i class="fas {{ cat.icon|default:'fa-cube' }} me-2 text-muted" style="width: 14px;"></i>{{ cat.name }}</span>
+                                        <span class="badge bg-light text-secondary border">{{ cat.count }}</span>
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Brand Filter -->
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-uppercase text-secondary mb-2" style="font-size: 0.75rem; letter-spacing: 0.05em;">
+                                Top Brands
+                            </label>
+                            <div class="d-flex flex-column gap-1" style="max-height: 180px; overflow-y: auto;">
+                                {% for b in brands %}
+                                    <label class="d-flex justify-content-between align-items-center small py-1 px-2 rounded-2 cursor-pointer text-secondary">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <input type="radio" name="brand" value="{{ b.name }}" class="form-check-input mt-0" {% if selected_brand == b.name %}checked{% endif %} onchange="this.form.submit()">
+                                            <span>{{ b.name }}</span>
+                                        </div>
+                                        <span class="text-muted" style="font-size: 0.75rem;">({{ b.count }})</span>
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Price Range Filter -->
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-uppercase text-secondary mb-2" style="font-size: 0.75rem; letter-spacing: 0.05em;">
+                                Price Range ($)
+                            </label>
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <input type="number" step="10" name="min_price" class="form-control form-control-sm" placeholder="Min $" value="{{ min_price }}">
+                                </div>
+                                <div class="col-6">
+                                    <input type="number" step="10" name="max_price" class="form-control form-control-sm" placeholder="Max $" value="{{ max_price }}">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-outline-primary w-100 py-1" style="border-radius: 8px;">
+                                Apply Price
+                            </button>
+                        </div>
+
+                        <!-- Customer Rating Filter -->
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-uppercase text-secondary mb-2" style="font-size: 0.75rem; letter-spacing: 0.05em;">
+                                Customer Rating
+                            </label>
+                            <div class="d-flex flex-column gap-1">
+                                <label class="d-flex align-items-center gap-2 small text-secondary cursor-pointer">
+                                    <input type="radio" name="rating" value="4.5" class="form-check-input mt-0" {% if selected_rating == '4.5' %}checked{% endif %} onchange="this.form.submit()">
+                                    <span class="text-warning"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i></span>
+                                    <span>4.5 & up</span>
+                                </label>
+                                <label class="d-flex align-items-center gap-2 small text-secondary cursor-pointer">
+                                    <input type="radio" name="rating" value="4.0" class="form-check-input mt-0" {% if selected_rating == '4.0' %}checked{% endif %} onchange="this.form.submit()">
+                                    <span class="text-warning"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star text-muted"></i></span>
+                                    <span>4.0 & up</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Availability & Deals Switches -->
+                        <div class="mb-3 pt-2 border-top">
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" name="in_stock" id="in_stock" value="true" {% if in_stock %}checked{% endif %} onchange="this.form.submit()">
+                                <label class="form-check-label small fw-semibold text-dark" for="in_stock">
+                                    In Stock Only
+                                </label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="on_sale" id="on_sale" value="true" {% if on_sale %}checked{% endif %} onchange="this.form.submit()">
+                                <label class="form-check-label small fw-semibold text-dark" for="on_sale">
+                                    On Sale Deals Only
+                                </label>
+                            </div>
+                        </div>
+                    </form>
                 </div>
-                
-                <!-- Card Details -->
-                <div class="p-3 d-flex flex-column flex-grow-1">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="product-category-tag">{{ product.category|default:"Electronics" }}</span>
-                        <span class="text-muted small">{{ product.brand }}</span>
-                    </div>
-                    
-                    <a href="{% url 'product' product.id %}" class="text-decoration-none">
-                        <h3 class="product-title text-dark">{{ product.name }}</h3>
-                    </a>
-                    
-                    <!-- Rating -->
-                    <div class="d-flex align-items-center gap-2 mb-3">
-                        <div class="rating-stars">
-                            {% for i in "12345" %}
-                                {% if forloop.counter <= product.rating %}
-                                    <i class="fas fa-star"></i>
-                                {% elif forloop.counter <= product.rating|add:0.5 %}
-                                    <i class="fas fa-star-half-alt"></i>
-                                {% else %}
-                                    <i class="far fa-star text-muted"></i>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                        <span class="text-muted small">({{ product.numReviews }})</span>
-                    </div>
-                    
-                    <!-- Price and Action Row -->
-                    <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="text-muted small" style="font-size: 0.72rem; line-height: 1;">Price</div>
-                            <div class="product-price">${{ product.price }}</div>
-                        </div>
-                        
-                        <div class="d-flex gap-2">
-                            <a href="{% url 'product' product.id %}" class="btn btn-sm btn-outline-secondary px-3" style="border-radius: 8px;" title="View Specifications">
-                                Details
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Products Area -->
+    <div class="col-lg-9">
+        <!-- Catalog Controls Bar -->
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+            <div>
+                <h2 class="h4 fw-bold mb-1 text-dark">
+                    {% if keyword %}
+                        Results for "<span class="text-primary">{{ keyword }}</span>"
+                    {% elif selected_category %}
+                        {{ selected_category }}
+                    {% elif selected_brand %}
+                        {{ selected_brand }} Products
+                    {% elif on_sale %}
+                        Promotional Deals
+                    {% else %}
+                        Curated Tech Catalog
+                    {% endif %}
+                </h2>
+                <p class="text-muted small mb-0">Showing <strong>{{ total_count }}</strong> verified products</p>
+            </div>
+            
+            <!-- Sort Selector -->
+            <div class="d-flex align-items-center gap-2">
+                <label for="sort-select" class="text-muted small fw-semibold text-nowrap">Sort by:</label>
+                <select id="sort-select" class="form-select form-select-sm" style="width: 190px; border-radius: 8px;" onchange="applySort(this.value)">
+                    <option value="newest" {% if sort == 'newest' or not sort %}selected{% endif %}>Latest Arrivals</option>
+                    <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Price: Low to High</option>
+                    <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Price: High to Low</option>
+                    <option value="rating" {% if sort == 'rating' %}selected{% endif %}>Highest Rated</option>
+                    <option value="reviews" {% if sort == 'reviews' %}selected{% endif %}>Most Reviewed</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Active Filters Chips Bar -->
+        {% if has_active_filters %}
+            <div class="d-flex align-items-center gap-2 flex-wrap mb-4 p-2 bg-light rounded-3 border">
+                <span class="small text-muted fw-semibold ps-1">Active Filters:</span>
+                {% if keyword %}
+                    <span class="badge bg-white text-dark border px-2 py-1">
+                        Keyword: {{ keyword }}
+                        <a href="?{% if selected_category %}category={{ selected_category }}{% endif %}{% if selected_brand %}&brand={{ selected_brand }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" class="text-danger ms-1">&times;</a>
+                    </span>
+                {% endif %}
+                {% if selected_category %}
+                    <span class="badge bg-white text-dark border px-2 py-1">
+                        Category: {{ selected_category }}
+                        <a href="?{% if keyword %}keyword={{ keyword }}{% endif %}{% if selected_brand %}&brand={{ selected_brand }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" class="text-danger ms-1">&times;</a>
+                    </span>
+                {% endif %}
+                {% if selected_brand %}
+                    <span class="badge bg-white text-dark border px-2 py-1">
+                        Brand: {{ selected_brand }}
+                        <a href="?{% if keyword %}keyword={{ keyword }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" class="text-danger ms-1">&times;</a>
+                    </span>
+                {% endif %}
+                {% if min_price or max_price %}
+                    <span class="badge bg-white text-dark border px-2 py-1">
+                        Price: ${{ min_price|default:"0" }} - ${{ max_price|default:"Max" }}
+                        <a href="?{% if keyword %}keyword={{ keyword }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_brand %}&brand={{ selected_brand }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" class="text-danger ms-1">&times;</a>
+                    </span>
+                {% endif %}
+                {% if selected_rating %}
+                    <span class="badge bg-white text-dark border px-2 py-1">
+                        Rating: {{ selected_rating }}+ ★
+                        <a href="?{% if keyword %}keyword={{ keyword }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_brand %}&brand={{ selected_brand }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" class="text-danger ms-1">&times;</a>
+                    </span>
+                {% endif %}
+                {% if in_stock %}
+                    <span class="badge bg-white text-dark border px-2 py-1">
+                        In Stock Only
+                        <a href="?{% if keyword %}keyword={{ keyword }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_brand %}&brand={{ selected_brand }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" class="text-danger ms-1">&times;</a>
+                    </span>
+                {% endif %}
+                {% if on_sale %}
+                    <span class="badge bg-white text-danger border px-2 py-1">
+                        <i class="fas fa-tags me-1"></i> On Sale
+                        <a href="?{% if keyword %}keyword={{ keyword }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_brand %}&brand={{ selected_brand }}{% endif %}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" class="text-danger ms-1">&times;</a>
+                    </span>
+                {% endif %}
+                <a href="{% url 'products' %}" class="btn btn-sm btn-link text-danger p-0 ms-auto text-decoration-none small">
+                    Clear All
+                </a>
+            </div>
+        {% endif %}
+
+        <!-- Products Grid -->
+        <div class="row g-4">
+            {% for product in products %}
+                <div class="col-xl-4 col-lg-6 col-md-6 col-sm-6">
+                    <div class="product-card h-100 d-flex flex-column">
+                        <!-- Image Box -->
+                        <div class="product-image-wrap">
+                            <a href="{% url 'product' product.id %}" class="d-block w-100 h-100 text-center">
+                                <img src="{{ product.image }}" alt="{{ product.name }}" loading="lazy">
                             </a>
-                            {% if product.countInStock > 0 %}
-                                <button type="button" class="btn btn-sm btn-primary px-3 add-to-cart-quick" 
-                                    data-id="{{ product.id }}" 
-                                    data-name="{{ product.name }}" 
-                                    data-price="{{ product.price }}" 
-                                    data-image="{{ product.image }}"
-                                    data-stock="{{ product.countInStock }}"
-                                    style="border-radius: 8px;"
-                                    title="Quick Add">
-                                    <i class="fas fa-cart-plus"></i>
-                                </button>
+                            
+                            <!-- Stock status overlay -->
+                            <div class="position-absolute top-0 start-0 m-3">
+                                {% if product.countInStock > 3 %}
+                                    <span class="badge-stock badge-in-stock"><i class="fas fa-check-circle"></i> In Stock</span>
+                                {% elif product.countInStock > 0 %}
+                                    <span class="badge-stock badge-low-stock"><i class="fas fa-hourglass-half"></i> Only {{ product.countInStock }} left</span>
+                                {% else %}
+                                    <span class="badge-stock badge-out-of-stock"><i class="fas fa-times-circle"></i> Sold Out</span>
+                                {% endif %}
+                            </div>
+
+                            <!-- Discount badge if on sale -->
+                            {% if product.on_sale %}
+                                <div class="position-absolute top-0 end-0 m-3">
+                                    <span class="badge bg-danger px-2 py-1 shadow-sm" style="border-radius: 8px; font-size: 0.72rem;">
+                                        -{{ product.discount_percent }}% OFF
+                                    </span>
+                                </div>
                             {% endif %}
                         </div>
+                        
+                        <!-- Card Details -->
+                        <div class="p-3 d-flex flex-column flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="product-category-tag">{{ product.category|default:"Electronics" }}</span>
+                                <span class="text-muted small fw-semibold">{{ product.brand }}</span>
+                            </div>
+                            
+                            <a href="{% url 'product' product.id %}" class="text-decoration-none">
+                                <h3 class="product-title text-dark">{{ product.name }}</h3>
+                            </a>
+                            
+                            <!-- Rating -->
+                            <div class="d-flex align-items-center gap-2 mb-3">
+                                <div class="rating-stars">
+                                    {% for i in "12345" %}
+                                        {% if forloop.counter <= product.rating %}
+                                            <i class="fas fa-star"></i>
+                                        {% elif forloop.counter <= product.rating|add:0.5 %}
+                                            <i class="fas fa-star-half-alt"></i>
+                                        {% else %}
+                                            <i class="far fa-star text-muted"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                <span class="text-muted small">({{ product.numReviews }})</span>
+                            </div>
+                            
+                            <!-- Price and Action Row -->
+                            <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="text-muted small" style="font-size: 0.72rem; line-height: 1;">Price</div>
+                                    <div class="d-flex align-items-baseline gap-2">
+                                        {% if product.on_sale %}
+                                            <div class="product-price text-danger">${{ product.discount_price }}</div>
+                                            <div class="text-muted text-decoration-line-through small" style="font-size: 0.8rem;">${{ product.price }}</div>
+                                        {% else %}
+                                            <div class="product-price">${{ product.price }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex gap-2">
+                                    <a href="{% url 'product' product.id %}" class="btn btn-sm btn-outline-secondary px-2" style="border-radius: 8px;" title="Specifications">
+                                        Details
+                                    </a>
+                                    {% if product.countInStock > 0 %}
+                                        <button type="button" class="btn btn-sm btn-primary px-3 add-to-cart-quick" 
+                                            data-id="{{ product.id }}" 
+                                            data-name="{{ product.name }}" 
+                                            data-price="{% if product.on_sale %}{{ product.discount_price }}{% else %}{{ product.price }}{% endif %}" 
+                                            data-image="{{ product.image }}"
+                                            data-stock="{{ product.countInStock }}"
+                                            style="border-radius: 8px;"
+                                            title="Quick Add">
+                                            <i class="fas fa-cart-plus"></i>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            {% empty %}
+                <div class="col-12 py-5 text-center">
+                    <div class="luxe-card py-5">
+                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                        <h4 class="fw-bold">No Products Found</h4>
+                        <p class="text-muted small mb-3">No active catalog items match your selected filters and keyword query.</p>
+                        <a href="{% url 'products' %}" class="btn-luxe btn-luxe-primary">
+                            Reset All Filters
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
         </div>
-    {% empty %}
-        <div class="col-12 py-5 text-center">
-            <div class="luxe-card py-5">
-                <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                <h3 class="fw-bold">No Products Found</h3>
-                <p class="text-muted">We couldn't find any products matching your current filters.</p>
-                <a href="{% url 'products' %}" class="btn-luxe btn-luxe-primary mt-2">
-                    Reset All Filters
-                </a>
-            </div>
-        </div>
-    {% endfor %}
-</div>
 
-<!-- Pagination Controls -->
-{% if pages > 1 %}
-<nav class="d-flex justify-content-center mt-5" aria-label="Catalog Page Navigation">
-    <ul class="pagination gap-1 shadow-sm p-1 bg-white" style="border-radius: 12px; border: 1px solid var(--surface-border);">
-        {% if page > 1 %}
-            <li class="page-item">
-                <a class="page-link border-0 text-dark" href="?page={{ page|add:'-1' }}{% if keyword %}&keyword={{ keyword }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">
-                    <i class="fas fa-chevron-left"></i>
-                </a>
-            </li>
+        <!-- Pagination Controls -->
+        {% if pages > 1 %}
+        <nav class="d-flex justify-content-center mt-5" aria-label="Catalog Page Navigation">
+            <ul class="pagination gap-1 shadow-sm p-1 bg-white" style="border-radius: 12px; border: 1px solid var(--surface-border);">
+                {% if page > 1 %}
+                    <li class="page-item">
+                        <a class="page-link border-0 text-dark" href="?page={{ page|add:'-1' }}{% if pagination_querystring %}&{{ pagination_querystring }}{% endif %}#catalog-grid">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+                
+                {% for p in pages_range %}
+                    <li class="page-item {% if p == page %}active{% endif %}">
+                        <a class="page-link border-0 {% if p == page %}bg-primary text-white fw-bold{% else %}text-dark{% endif %}" href="?page={{ p }}{% if pagination_querystring %}&{{ pagination_querystring }}{% endif %}#catalog-grid" style="border-radius: 8px;">
+                            {{ p }}
+                        </a>
+                    </li>
+                {% endfor %}
+                
+                {% if page < pages %}
+                    <li class="page-item">
+                        <a class="page-link border-0 text-dark" href="?page={{ page|add:'1' }}{% if pagination_querystring %}&{{ pagination_querystring }}{% endif %}#catalog-grid">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
         {% endif %}
-        
-        {% for p in pages_range %}
-            <li class="page-item {% if p == page %}active{% endif %}">
-                <a class="page-link border-0 {% if p == page %}bg-primary text-white fw-bold{% else %}text-dark{% endif %}" href="?page={{ p }}{% if keyword %}&keyword={{ keyword }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" style="border-radius: 8px;">
-                    {{ p }}
-                </a>
-            </li>
-        {% endfor %}
-        
-        {% if page < pages %}
-            <li class="page-item">
-                <a class="page-link border-0 text-dark" href="?page={{ page|add:'1' }}{% if keyword %}&keyword={{ keyword }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">
-                    <i class="fas fa-chevron-right"></i>
-                </a>
-            </li>
-        {% endif %}
-    </ul>
-</nav>
-{% endif %}
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
     function applySort(sortVal) {
-        const url = new URL(window.location);
-        url.searchParams.set('sort', sortVal);
-        url.searchParams.set('page', '1');
-        window.location.href = url.toString();
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set('sort', sortVal);
+        urlParams.delete('page');
+        window.location.search = urlParams.toString() + '#catalog-grid';
     }
-    
-    // Quick Add To Cart Button Handler
-    document.querySelectorAll('.add-to-cart-quick').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const productData = {
-                id: this.dataset.id,
+
+    // Quick Add to Cart event listener
+    document.querySelectorAll('.add-to-cart-quick').forEach(button => {
+        button.addEventListener('click', function() {
+            const product = {
+                product: this.dataset.id,
                 name: this.dataset.name,
-                price: this.dataset.price,
+                price: parseFloat(this.dataset.price),
                 image: this.dataset.image,
-                countInStock: this.dataset.stock
+                countInStock: parseInt(this.dataset.stock),
+                qty: 1
             };
-            addProductToCart(productData, 1, true);
+            
+            addToCart(product);
+            
+            // Visual feedback animation
+            const originalHTML = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-check text-white"></i>';
+            this.classList.replace('btn-primary', 'btn-success');
+            
+            setTimeout(() => {
+                this.innerHTML = originalHTML;
+                this.classList.replace('btn-success', 'btn-primary');
+            }, 1200);
         });
     });
 </script>

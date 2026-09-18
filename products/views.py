@@ -2,14 +2,14 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
-from .models import Product, Review
+from .models import Product, Review, Category, ProductSpecification, ProductImage
 from .serializers import ProductSerializer
 from rest_framework import status
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import user_passes_test
-from django.db.models import Q
+from django.db.models import Q, F
 
 def is_admin(user):
     return user.is_authenticated and user.is_staff
@@ -18,36 +18,118 @@ def is_admin(user):
 def getProducts(request):
     query = request.GET.get('keyword', request.query_params.get('keyword', '')).strip()
     category = request.GET.get('category', request.query_params.get('category', '')).strip()
-    sort = request.GET.get('sort', request.query_params.get('sort', '')).strip()
+    brand = request.GET.get('brand', request.query_params.get('brand', '')).strip()
+    min_price = request.GET.get('min_price', request.query_params.get('min_price', '')).strip()
+    max_price = request.GET.get('max_price', request.query_params.get('max_price', '')).strip()
+    rating = request.GET.get('rating', request.query_params.get('rating', '')).strip()
+    in_stock = request.GET.get('in_stock', request.query_params.get('in_stock', '')).strip().lower() in ('true', '1', 'on', 'yes')
+    on_sale = request.GET.get('on_sale', request.query_params.get('on_sale', '')).strip().lower() in ('true', '1', 'on', 'yes')
+    sort = request.GET.get('sort', request.query_params.get('sort', 'newest')).strip()
     
-    products = Product.objects.all()
+    products = Product.objects.filter(is_active=True)
     
+    # Text search
     if query:
         products = products.filter(
             Q(name__icontains=query) |
             Q(description__icontains=query) |
-            Q(brand__icontains=query)
+            Q(brand__icontains=query) |
+            Q(tags__icontains=query) |
+            Q(sku__icontains=query)
         )
     
+    # Category filter
     if category and category.lower() != 'all':
-        products = products.filter(category__iexact=category)
+        products = products.filter(
+            Q(category__iexact=category) |
+            Q(category_ref__slug__iexact=category) |
+            Q(category_ref__name__iexact=category)
+        )
     
+    # Brand filter
+    if brand and brand.lower() != 'all':
+        products = products.filter(brand__iexact=brand)
+        
+    # Price range filter
+    if min_price:
+        try:
+            products = products.filter(price__gte=float(min_price))
+        except ValueError:
+            pass
+            
+    if max_price:
+        try:
+            products = products.filter(price__lte=float(max_price))
+        except ValueError:
+            pass
+            
+    # Rating filter
+    if rating:
+        try:
+            products = products.filter(rating__gte=float(rating))
+        except ValueError:
+            pass
+            
+    # In stock filter
+    if in_stock:
+        products = products.filter(countInStock__gt=0)
+        
+    # On sale filter
+    if on_sale:
+        products = products.filter(discount_price__isnull=False).filter(discount_price__lt=F('price'))
+    
+    # Sorting
     if sort == 'price_asc':
         products = products.order_by('price')
     elif sort == 'price_desc':
         products = products.order_by('-price')
     elif sort == 'rating':
         products = products.order_by('-rating', '-numReviews')
+    elif sort == 'reviews':
+        products = products.order_by('-numReviews', '-rating')
     elif sort == 'newest':
-        products = products.order_by('-createdAt')
+        products = products.order_by('-createdAt', '-id')
     else:
         products = products.order_by('-createdAt', '-id')
     
-    # Get all distinct categories for filtering pills
-    categories = list(Product.objects.exclude(category__isnull=True).exclude(category='').values_list('category', flat=True).distinct())
+    # Aggregate category counts
+    all_active_products = Product.objects.filter(is_active=True)
+    categories_qs = Category.objects.filter(is_active=True)
+    categories_list = []
+    for cat in categories_qs:
+        count = all_active_products.filter(Q(category_ref=cat) | Q(category__iexact=cat.name)).count()
+        if count > 0:
+            categories_list.append({
+                'name': cat.name,
+                'slug': cat.slug,
+                'icon': cat.icon,
+                'count': count
+            })
+    
+    # If no Category models linked yet, fallback to distinct category strings
+    if not categories_list:
+        raw_cats = all_active_products.exclude(category__isnull=True).exclude(category='').values_list('category', flat=True).distinct()
+        for cat_name in raw_cats:
+            count = all_active_products.filter(category=cat_name).count()
+            categories_list.append({
+                'name': cat_name,
+                'slug': cat_name.lower().replace(' ', '-'),
+                'icon': 'fa-box',
+                'count': count
+            })
+            
+    # Aggregate brand counts
+    brands_data = []
+    raw_brands = all_active_products.exclude(brand__isnull=True).exclude(brand='').values_list('brand', flat=True).distinct().order_by('brand')
+    for b in raw_brands:
+        b_count = all_active_products.filter(brand__iexact=b).count()
+        brands_data.append({
+            'name': b,
+            'count': b_count
+        })
     
     page = request.GET.get('page', request.query_params.get('page', 1))
-    paginator = Paginator(products, 8)
+    paginator = Paginator(products, 12)
     
     try:
         page_obj = paginator.page(page)
@@ -65,8 +147,18 @@ def getProducts(request):
             'products': serializer.data,
             'page': int(page),
             'pages': paginator.num_pages,
-            'total': paginator.count
+            'total': paginator.count,
+            'categories': categories_list,
+            'brands': brands_data
         })
+    
+    # Build query string for pagination preserving all filters
+    query_params_dict = request.GET.copy()
+    if 'page' in query_params_dict:
+        del query_params_dict['page']
+    pagination_querystring = query_params_dict.urlencode()
+    
+    has_active_filters = bool(query or (category and category.lower() != 'all') or (brand and brand.lower() != 'all') or min_price or max_price or rating or in_stock or on_sale)
     
     context = {
         'products': serializer.data,
@@ -75,9 +167,18 @@ def getProducts(request):
         'pages_range': range(1, paginator.num_pages + 1),
         'keyword': query,
         'selected_category': category,
-        'categories': categories,
+        'selected_brand': brand,
+        'min_price': min_price,
+        'max_price': max_price,
+        'selected_rating': rating,
+        'in_stock': in_stock,
+        'on_sale': on_sale,
+        'categories': categories_list,
+        'brands': brands_data,
         'sort': sort,
-        'total_count': paginator.count
+        'total_count': paginator.count,
+        'has_active_filters': has_active_filters,
+        'pagination_querystring': pagination_querystring,
     }
     return render(request, 'products/product_list.html', context)
 
@@ -97,15 +198,20 @@ def getProduct(request, pk):
             related_qs = Product.objects.exclude(id=product.id)[:4]
         related_serializer = ProductSerializer(related_qs, many=True, context={'request': request})
         
+        from orders.models import ShippingMethod
+        shipping_methods = ShippingMethod.objects.filter(is_active=True)
+        
         return render(request, 'products/product_detail.html', {
             'product': serializer.data,
-            'related_products': related_serializer.data
+            'related_products': related_serializer.data,
+            'shipping_methods': shipping_methods
         })
     except Product.DoesNotExist:
         if 'application/json' in request.META.get('HTTP_ACCEPT', '') and not request.path.startswith('/products/'):
             return Response({'detail': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
         messages.error(request, 'Product not found')
         return redirect('products')
+
 
 
 @api_view(['POST'])

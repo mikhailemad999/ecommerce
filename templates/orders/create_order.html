@@ -22,7 +22,7 @@
     </div>
     
     <h1 class="h2 fw-bold mb-1">Finalize Your Order</h1>
-    <p class="text-muted small">Please verify your shipping destination and select your preferred transaction method.</p>
+    <p class="text-muted small">Choose your destination, delivery velocity, and payment method.</p>
 </div>
 
 <div class="row g-4">
@@ -33,17 +33,57 @@
             
             <!-- Shipping Information Card -->
             <div class="luxe-card p-4 mb-4">
-                <h4 class="fw-bold mb-3 d-flex align-items-center gap-2">
-                    <i class="fas fa-shipping-fast text-primary"></i> Shipping Destination
-                </h4>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="fw-bold mb-0 d-flex align-items-center gap-2">
+                        <i class="fas fa-shipping-fast text-primary"></i> Shipping Destination
+                    </h4>
+                    {% if saved_addresses %}
+                        <span class="badge bg-primary-subtle text-primary border">Address Book Available</span>
+                    {% endif %}
+                </div>
+
+                {% if saved_addresses %}
+                    <!-- Saved Addresses Quick Pick -->
+                    <div class="mb-3 p-3 rounded-3" style="background: #f8fafc; border: 1px dashed #cbd5e1;">
+                        <label class="form-label small fw-semibold text-dark mb-2">
+                            <i class="fas fa-bookmark text-primary me-1"></i> Choose from Your Saved Addresses:
+                        </label>
+                        <select class="form-select form-select-sm" id="saved-address-select" onchange="fillSavedAddress(this)">
+                            <option value="">-- Or enter a new address below --</option>
+                            {% for addr in saved_addresses %}
+                                <option value="{{ addr.id }}" 
+                                        data-name="{{ addr.full_name }}"
+                                        data-street="{{ addr.street_address }}"
+                                        data-city="{{ addr.city }}"
+                                        data-state="{{ addr.state_province|default:'' }}"
+                                        data-zip="{{ addr.postal_code }}"
+                                        data-country="{{ addr.country }}"
+                                        data-phone="{{ addr.phone }}"
+                                        {% if addr.is_default %}selected{% endif %}>
+                                    {{ addr.title }} - {{ addr.street_address }}, {{ addr.city }} {% if addr.is_default %}(Default){% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endif %}
                 
                 <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="fullName" class="form-label">Full Name / Recipient <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="fullName" name="fullName" value="{{ user.first_name|default:user.username }}" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="phone" class="form-label">Contact Phone Number <span class="text-danger">*</span></label>
+                        <input type="tel" class="form-control" id="phone" name="phone" placeholder="e.g. +1 (555) 019-2834" value="{{ user.profile.phone_number|default:'' }}" required>
+                    </div>
+
                     <div class="col-12">
                         <label for="address" class="form-label">Street Address <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="address" name="address" placeholder="e.g. 742 Evergreen Terrace, Suite 10" required>
                     </div>
                     
-                    <div class="col-md-6">
+                    <div class="col-md-5">
                         <label for="city" class="form-label">City <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="city" name="city" placeholder="e.g. San Francisco" required>
                     </div>
@@ -53,15 +93,52 @@
                         <input type="text" class="form-control" id="postalCode" name="postalCode" placeholder="e.g. 94107" required>
                     </div>
                     
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label for="country" class="form-label">Country <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="country" name="country" placeholder="e.g. United States" value="United States" required>
                     </div>
-                    
-                    <div class="col-md-6">
-                        <label for="phone" class="form-label">Contact Phone Number</label>
-                        <input type="tel" class="form-control" id="phone" name="phone" placeholder="e.g. +1 (555) 019-2834">
+
+                    <div class="col-12">
+                        <div class="form-check mt-1">
+                            <input class="form-check-input" type="checkbox" name="saveAddress" id="saveAddress" checked>
+                            <label class="form-check-label small text-secondary" for="saveAddress">
+                                Save this address to my profile address book for future expedited checkout
+                            </label>
+                        </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Shipping Carrier & Method Selection -->
+            <div class="luxe-card p-4 mb-4">
+                <h4 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                    <i class="fas fa-truck text-primary"></i> Select Delivery Velocity
+                </h4>
+
+                <div class="d-flex flex-column gap-3" id="shipping-methods-container">
+                    {% for method in shipping_methods %}
+                        <label class="p-3 border rounded d-flex align-items-center justify-content-between shipping-method-card {% if forloop.first %}selected-method border-primary{% endif %}" style="cursor: pointer; border-radius: 12px; background: #fafafa;" onclick="selectShippingMethod(this, {{ method.id }}, {{ method.base_price }}, {% if method.free_shipping_threshold %}{{ method.free_shipping_threshold }}{% else %}null{% endif %})">
+                            <div class="d-flex align-items-center gap-3">
+                                <input class="form-check-input mt-0 shipping-radio" type="radio" name="shippingMethodId" id="method-{{ method.id }}" value="{{ method.id }}" {% if forloop.first %}checked{% endif %}>
+                                <div>
+                                    <div class="fw-bold text-dark d-flex align-items-center gap-2">
+                                        {{ method.name }}
+                                        <span class="badge bg-light text-secondary border" style="font-size: 0.72rem;">
+                                            {{ method.carrier.name|default:"Courier" }}
+                                        </span>
+                                    </div>
+                                    <small class="text-muted">{{ method.description|default:"Reliable tracked dispatch" }} &bull; <strong>{{ method.estimated_days_min }}-{{ method.estimated_days_max }} Days</strong></small>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <span class="fw-bold text-dark fs-6 method-price-badge" data-base="{{ method.base_price }}" data-threshold="{{ method.free_shipping_threshold|default:'' }}">
+                                    ${{ method.base_price }}
+                                </span>
+                            </div>
+                        </label>
+                    {% empty %}
+                        <p class="text-muted small">Standard Courier Delivery ($10.00)</p>
+                    {% endfor %}
                 </div>
             </div>
             
@@ -110,7 +187,7 @@
     <!-- Order Breakdown Sidebar -->
     <div class="col-lg-4">
         <div class="luxe-card p-4 sticky-top" style="top: 100px;">
-            <h4 class="fw-bold pb-3 mb-3 border-bottom">Items in Order</h4>
+            <h4 class="fw-bold pb-3 mb-3 border-bottom">Order Summary</h4>
             
             <div class="d-flex flex-column gap-3 mb-4" style="max-height: 280px; overflow-y: auto;">
                 {% for item in cart_items %}
@@ -130,24 +207,22 @@
             
             <div class="d-flex justify-content-between mb-2 small">
                 <span class="text-muted">Items Subtotal:</span>
-                <span class="fw-semibold text-dark">${{ items_price }}</span>
+                <span class="fw-semibold text-dark" id="display-subtotal">${{ items_price }}</span>
             </div>
             <div class="d-flex justify-content-between mb-2 small">
-                <span class="text-muted">Shipping:</span>
-                <span class="fw-semibold {% if shipping_price == '0.00' %}text-success{% else %}text-dark{% endif %}">
-                    {% if shipping_price == '0.00' %}FREE{% else %}${{ shipping_price }}{% endif %}
-                </span>
+                <span class="text-muted">Shipping Fee:</span>
+                <span class="fw-semibold text-dark" id="display-shipping">${{ shipping_price }}</span>
             </div>
             <div class="d-flex justify-content-between mb-3 small">
                 <span class="text-muted">Sales Tax (15%):</span>
-                <span class="fw-semibold text-dark">${{ tax_price }}</span>
+                <span class="fw-semibold text-dark" id="display-tax">${{ tax_price }}</span>
             </div>
             
             <hr class="my-3">
             
             <div class="d-flex justify-content-between align-items-baseline mb-3">
                 <span class="h5 fw-bold mb-0">Total Due:</span>
-                <span class="h3 fw-bold text-dark mb-0">${{ total_price }}</span>
+                <span class="h3 fw-bold text-dark mb-0" id="display-total">${{ total_price }}</span>
             </div>
             
             <div class="text-center text-muted small mt-2">
@@ -160,19 +235,82 @@
 
 {% block scripts %}
 <script>
+    const baseItemsPrice = parseFloat('{{ items_price }}');
+    const taxPrice = parseFloat('{{ tax_price }}');
+    let currentShippingPrice = parseFloat('{{ shipping_price }}');
+    let selectedMethodId = document.querySelector('.shipping-radio:checked') ? document.querySelector('.shipping-radio:checked').value : null;
+
+    function selectShippingMethod(el, methodId, basePrice, freeThreshold) {
+        document.querySelectorAll('.shipping-method-card').forEach(c => {
+            c.classList.remove('selected-method', 'border-primary');
+            c.style.background = '#fafafa';
+        });
+        el.classList.add('selected-method', 'border-primary');
+        el.style.background = '#ffffff';
+
+        const radio = el.querySelector('.shipping-radio');
+        if (radio) radio.checked = true;
+        selectedMethodId = methodId;
+
+        // Calculate shipping cost
+        if (freeThreshold && baseItemsPrice >= parseFloat(freeThreshold)) {
+            currentShippingPrice = 0.00;
+        } else {
+            currentShippingPrice = parseFloat(basePrice);
+        }
+
+        recalculateTotals();
+    }
+
+    function recalculateTotals() {
+        const total = (baseItemsPrice + currentShippingPrice + taxPrice).toFixed(2);
+        const shippingDisplay = currentShippingPrice === 0 ? 'FREE' : `$${currentShippingPrice.toFixed(2)}`;
+        
+        document.getElementById('display-shipping').textContent = shippingDisplay;
+        if (currentShippingPrice === 0) {
+            document.getElementById('display-shipping').className = 'fw-semibold text-success';
+        } else {
+            document.getElementById('display-shipping').className = 'fw-semibold text-dark';
+        }
+        document.getElementById('display-total').textContent = `$${total}`;
+    }
+
+    function fillSavedAddress(selectEl) {
+        const opt = selectEl.options[selectEl.selectedIndex];
+        if (!opt || !opt.value) return;
+
+        if (opt.dataset.name) document.getElementById('fullName').value = opt.dataset.name;
+        if (opt.dataset.street) document.getElementById('address').value = opt.dataset.street;
+        if (opt.dataset.city) document.getElementById('city').value = opt.dataset.city;
+        if (opt.dataset.zip) document.getElementById('postalCode').value = opt.dataset.zip;
+        if (opt.dataset.country) document.getElementById('country').value = opt.dataset.country;
+        if (opt.dataset.phone) document.getElementById('phone').value = opt.dataset.phone;
+    }
+
+    // Auto-fill default address on load if present
+    document.addEventListener('DOMContentLoaded', () => {
+        const sel = document.getElementById('saved-address-select');
+        if (sel && sel.value) {
+            fillSavedAddress(sel);
+        }
+    });
+
     document.getElementById('order-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         
         const submitBtn = document.getElementById('btn-submit-order');
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Securing Order...';
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Securing Order & Assigning Courier...';
         
         const formData = new FormData(this);
         const cartItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
         
         const orderPayload = {
             orderItems: cartItems,
+            shippingMethodId: selectedMethodId,
+            saveAddress: formData.get('saveAddress') === 'on',
             shippingAddress: {
+                fullName: formData.get('fullName'),
                 address: formData.get('address'),
                 city: formData.get('city'),
                 postalCode: formData.get('postalCode'),
@@ -180,10 +318,10 @@
                 phone: formData.get('phone') || ''
             },
             paymentMethod: formData.get('paymentMethod'),
-            itemsPrice: parseFloat('{{ items_price }}'),
-            shippingPrice: parseFloat('{{ shipping_price }}'),
-            taxPrice: parseFloat('{{ tax_price }}'),
-            totalPrice: parseFloat('{{ total_price }}')
+            itemsPrice: baseItemsPrice,
+            shippingPrice: currentShippingPrice,
+            taxPrice: taxPrice,
+            totalPrice: parseFloat((baseItemsPrice + currentShippingPrice + taxPrice).toFixed(2))
         };
         
         const csrftoken = getCookie('csrftoken');
@@ -199,8 +337,8 @@
             });
             
             const data = await resp.json();
-            
             const orderId = data.id || data._id;
+            
             if (orderId) {
                 localStorage.removeItem('cartItems');
                 syncCartBadge();
